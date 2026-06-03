@@ -7,7 +7,4 @@ Each file is one idea. Folders group by area.
 
 ## Layout
 
-- `collaboration/` — working with an agent (decisions, check-ins, workflow)
-- `coding-style/` — how code should be written
-- `debugging/` — how to approach diagnosis
-- `git/` — version-control discipline
+- `guidelines/` — directives the agent follows: collaboration, coding-style, debugging, git
