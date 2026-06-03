@@ -1,4 +1,4 @@
-# Warnings are failures
+# Treat warnings as failures
 
 Treat compiler, type-checker, linter, and build warnings as failures, not noise — CI
 does. A warning stream everyone ignores is just deferred breakage, and it trains people

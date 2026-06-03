@@ -1,4 +1,4 @@
-# No silent catch blocks
+# Never write a silent catch block
 
 Never swallow an error silently. A catch that discards what it caught is worse than no
 catch at all — it hides the failure and makes the bug invisible later.

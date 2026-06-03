@@ -1,4 +1,4 @@
-# Presenting options & decisions
+# Present options and decisions
 
 When the reader needs to choose between options, surface them so they can skim, decide,
 and answer fast without re-quoting anything back.

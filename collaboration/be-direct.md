@@ -17,6 +17,9 @@ The tell to watch for:
   exhaustive catalog of everything possible. Lead with the option you'd pick and one or
   two real alternatives. Stop there unless asked to go wider.
 
+Concision is about prose, not substance — trim words, never real concerns. A genuine risk
+or open question is worth raising even inside a short answer.
+
 ## Don't over-engineer
 
 When proposing a solution, prefer the simplest thing that genuinely solves the problem.

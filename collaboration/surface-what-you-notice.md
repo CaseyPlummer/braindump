@@ -27,8 +27,8 @@ beyond the obvious one. Lenses worth running, whatever the domain:
 - **Edge cases** — boundaries and extremes: the empty, the maximum, the absent.
 - **Failure modes** — what happens when a step doesn't work.
 - **Unknowns & assumptions** — what hasn't been decided or tested. Name them out loud.
-- **Better paths** — a simpler or more robust approach than the one on the table. Raise it
-  once; if the call's already been made, respect it rather than relitigating.
+- **Better paths** — a simpler or more robust approach than the one on the table. Surface
+  it while the decision is still open; once a path is chosen, don't relitigate it.
 
 ## Calibrate, don't drown
 
