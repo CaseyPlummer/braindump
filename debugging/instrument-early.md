@@ -1,8 +1,8 @@
 # Add instrumentation early when a diagnosis stalls
 
 When a bug doesn't reveal itself quickly, stop guessing and make the problem visible.
-Time spent adding logging upfront saves multiples of it later — I once lost two hours to
-a session where the visibility wasn't added soon enough.
+Time spent adding logging upfront saves multiples of it later — a hard session can burn
+hours when visibility is added too late.
 
 ## The trigger
 

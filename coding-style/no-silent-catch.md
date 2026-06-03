@@ -1,8 +1,7 @@
 # No silent catch blocks
 
-When writing code for me, never swallow an error silently. A catch that discards what
-it caught is worse than no catch at all — it hides the failure and makes the bug
-invisible later.
+Never swallow an error silently. A catch that discards what it caught is worse than no
+catch at all — it hides the failure and makes the bug invisible later.
 
 ## The rule
 
