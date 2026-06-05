@@ -5,7 +5,7 @@ focus on the case that drives most real-world decisions: a **reusable feature
 embedded across multiple host applications that may sit on different framework
 versions**, where teams ship on independent schedules.
 
-Findings are current as of **mid-2026** (Angular 22 released; the example builds on it).
+Findings are current as of **mid-2026** (Angular 22 released; the demo builds on it).
 This is a fast-moving area; see [`sources.md`](./sources.md) for what each claim is
 grounded in.
 
@@ -32,8 +32,13 @@ Everything else — bundler, repo layout, delivery model — is secondary to thi
 | [`comparison-matrix.md`](./comparison-matrix.md) | The package/approach grid — criteria scored across the candidate technologies, with gaps                                                               |
 | [`performance.md`](./performance.md)             | Measured bundle/runtime cost, web-performance budgets, and the version-spread cost model                                                               |
 | [`recommendation.md`](./recommendation.md)       | A recommendation for the version-independence scenario, with the decision gate and trade-offs named                                                    |
-| [`example/`](./example/)                         | A runnable barebones Angular MFE-as-web-component, plus a multi-runtime isolation demo                                                                 |
+| [`isolation-demo/`](./isolation-demo/)           | A runnable barebones Angular MFE-as-web-component + a multi-runtime isolation proof (focused spike, not a full host)                                   |
 | [`sources.md`](./sources.md)                     | Consolidated, dated sources                                                                                                                            |
+
+> **Planned:** a `poc/` reference implementation — a realistic Angular host that
+> loads MFEs via a manifest with **share-when-aligned** runtime sharing (Native
+> Federation as the import-map/loader layer), where `isolation-demo/` only proves
+> the boundary. See _Host architecture_ in [`recommendation.md`](./recommendation.md).
 
 ## Scope notes
 
@@ -42,3 +47,8 @@ Everything else — bundler, repo layout, delivery model — is secondary to thi
 - **single-spa** is treated as legacy and not recommended for new work
   (maintenance status; superseded by federation and native web-component
   approaches). It appears in the matrix only to document why it is excluded.
+- **OpenComponents** (a registry-based framework with its own component model) is
+  evaluated in [`comparison-matrix.md`](./comparison-matrix.md) and not recommended
+  here — its strengths (polyglot, Node-less edge SSR) are orthogonal to an
+  Angular-only, web-component-boundary strategy. Its versioned-registry idea is worth
+  borrowing, though.

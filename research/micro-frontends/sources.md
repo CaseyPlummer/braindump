@@ -39,12 +39,20 @@ so re-verify version-specific claims before relying on them.
 - Performance budgets (MDN) — https://developer.mozilla.org/en-US/docs/Web/Performance/Guides/Performance_budgets
 - Getting started with micro frontends and Angular (duplication / Hydra framing) — https://blog.briebug.com/blog/micro-frontends-angular
 
+## OpenComponents (evaluated, not recommended here)
+
+- OpenComponents docs / intro — https://opencomponents.github.io/docs/intro/
+- OpenComponents repo (`opencomponents/oc`) — https://github.com/opencomponents/oc
+- Server-side rendering (wiki) — https://github.com/opencomponents/oc/wiki/Server-side-rendering
+- Origin: "OpenComponents — microservices in the front-end world" (OpenTable) — https://tech.opentable.co.uk/posts/opencomponents-microservices-in-the-front-end-world/
+
 ## Measured locally
 
-The bundle and runtime figures in [`performance.md`](./performance.md) were measured
-from the [`example/`](./example/) project (Angular 21, zoneless, esbuild, production)
-on this machine, not taken from the sources above — those provide the surrounding
-context and budget references.
+The bundle, runtime, and mobile-Lighthouse figures in [`performance.md`](./performance.md)
+were measured from the [`isolation-demo/`](./isolation-demo/) project (Angular 22,
+zoneless, esbuild, production) on this machine — the three-runtime page run through
+Lighthouse's default mobile preset (Moto G4-class CPU + simulated Slow 4G). Not taken
+from the sources above; those provide surrounding context and budget references.
 
 ## Key people
 

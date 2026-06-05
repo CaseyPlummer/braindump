@@ -1,9 +1,15 @@
-# Barebones Angular MFE as a self-contained web component
+# Isolation demo: Angular MFE as a self-contained web component
 
 A minimal, runnable illustration of the core idea behind the
 [micro-frontends research](../README.md): an Angular micro-frontend packaged as a
 **self-contained custom element** that carries its own runtime, plus a demo page
 that runs **several independent runtimes side by side** to show version isolation.
+
+> **Scope:** this is a focused spike that proves the **boundary and runtime
+> isolation** only. Its "host" is intentionally a static HTML page with `<script>`
+> tags — _not_ a realistic host. A separate `poc/` is planned for a realistic Angular
+> host with manifest-driven loading and share-when-aligned runtime sharing (see
+> _Host architecture_ in [`../recommendation.md`](../recommendation.md)).
 
 > Built on **Angular 22** (zoneless by default, esbuild, TypeScript 6). Requires
 > Node ≥ 24.15 for the v22 CLI.

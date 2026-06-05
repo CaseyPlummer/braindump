@@ -7,7 +7,7 @@ web-performance budgets.
 
 ## Measured baseline
 
-Built with the [`example/`](./example/) project — minimal Angular 22, **zoneless**,
+Built with the [`isolation-demo/`](./isolation-demo/) project — minimal Angular 22, **zoneless**,
 esbuild, production (TypeScript 6):
 
 | Artifact                                                       | Raw     | Gzip          |
@@ -23,6 +23,28 @@ per **distinct Angular version live on a page**.
 
 Reference budgets: critical-path JS ~250 KB (aggressive ~200 KB), total page ~1 MB,
 Time-to-Interactive < 3 s (< 5 s on 3G/4G).
+
+## Measured: mobile Lighthouse (three runtimes)
+
+The three-runtime page run through Lighthouse on its **default mobile preset**
+(Moto G4-class CPU + simulated Slow 4G):
+
+| Metric                   | Value        |
+| ------------------------ | ------------ |
+| Performance score        | **95 / 100** |
+| First Contentful Paint   | 2.4 s        |
+| Largest Contentful Paint | 2.4 s        |
+| Total Blocking Time      | **0 ms**     |
+| Speed Index              | 2.4 s        |
+| Cumulative Layout Shift  | 0            |
+| Time to Interactive      | 2.4 s        |
+
+Even with **three independent Angular runtimes**, blocking time is **0 ms** — the
+multi-runtime bootstrap does not jam the main thread (zoneless helps). LCP sits right
+at the 2.5 s "good" threshold and is dominated by **Slow-4G transfer** of the ~106 KB
+gzip, not CPU. Caveat: this is framework overhead only; real feature code, images, and
+data fetching would add to LCP/TBT — but it confirms the _duplication itself_ is not
+the bottleneck.
 
 ## Page math
 
@@ -41,8 +63,9 @@ which is why the table compounds with eager runtime count, not byte count alone.
 ## The cost scales with two things — neither is "total MFE count"
 
 1. **MFEs co-rendered per page**, not MFEs in the catalog. A reusable MFE appears in
-   _many hosts_; that does not mean _many MFEs per page_. Coarse-grained,
-   domain-level MFEs typically put 1–3 on a page → the green rows above.
+   _many hosts_; that does not mean _many MFEs per page_. A realistic target envelope
+   for coarse-grained, domain-level MFEs is **1–2 per page typically, ~5 at the busiest**
+   → the green rows above.
 2. **Distinct live versions per page**, not MFE instances. With
    **share-when-aligned** (externalize the runtime as a shared singleton when
    versions match, fall back to a private copy when they don't):
@@ -50,7 +73,8 @@ which is why the table compounds with eager runtime count, not byte count alone.
      pure federation. ~35 KB _once_.
    - **During a migration** (host moved to vNext, some MFEs still on vCurrent): the
      page loads one runtime per distinct version. With a one-major skew ceiling that
-     is **two** runtimes (~70 KB), transiently, until laggards catch up.
+     is **two** runtimes (~70 KB), transiently, until laggards catch up. A rare
+     exception allowing up to **three** distinct versions is still only ~106 KB.
 
 So the honest steady-state cost of version independence is **+~35 KB gzip per extra
 Angular major live on a page during migration windows** — bounded, transient, and
@@ -71,10 +95,8 @@ anti-pattern actually bites. Mitigations:
 
 ## What is not yet measured here
 
-- **Mobile TTI under throttling.** The example proves three runtimes coexist and
-  bootstrap quickly on desktop, but a throttled Lighthouse run is needed for a
-  defensible mobile TTI number.
 - **Real feature weight.** The measured floor is framework-only; production MFEs add
-  their own feature code on top of ~35 KB.
+  their own feature code on top of ~35 KB, which would raise LCP/TBT above the demo's
+  numbers. The mobile Lighthouse run above isolates _framework_ overhead.
 - **SSR cost.** Not evaluated — SSR is impractical alongside multiple self-contained
   runtimes and is treated as a separate, shared-singleton concern.
