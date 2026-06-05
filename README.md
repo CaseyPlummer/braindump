@@ -1,10 +1,11 @@
 # braindump
 
-A collection of working preferences, coding style, and collaboration patterns — written
-as small, self-contained ingredients to mix and match into any repo.
+A collection of working knowledge — guidelines for working with an AI agent, reusable
+tooling, research, and notes.
 
-Each file is one idea. Folders group by area.
 
 ## Layout
 
 - `guidelines/` — directives the agent follows: collaboration, coding-style, debugging, git
+- `research/` — grounded findings and investigations, organized by topic; facts, not directives
+- `claude/` — Claude Code-specific tooling (statusline, skills); not portable to other agents
