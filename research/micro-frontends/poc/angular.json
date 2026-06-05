@@ -1,0 +1,82 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "host": {
+      "projectType": "application",
+      "root": "projects/host",
+      "sourceRoot": "projects/host/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "projects/host/src/main.ts",
+            "index": "projects/host/src/index.html",
+            "tsConfig": "tsconfig.app.json",
+            "styles": ["projects/host/src/styles.css"],
+            "assets": [{ "glob": "**/*", "input": "projects/host/public" }]
+          },
+          "configurations": {
+            "production": { "outputHashing": "none" },
+            "development": { "optimization": false, "sourceMap": true }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": { "buildTarget": "host:build:production" },
+            "development": { "buildTarget": "host:build:development" }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    },
+    "mfe-orders": {
+      "projectType": "application",
+      "root": "projects/mfe-orders",
+      "sourceRoot": "projects/mfe-orders/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "projects/mfe-orders/src/main.ts",
+            "index": "projects/mfe-orders/src/index.html",
+            "tsConfig": "tsconfig.app.json",
+            "outputHashing": "none"
+          },
+          "defaultConfiguration": "production",
+          "configurations": {
+            "production": {},
+            "development": { "optimization": false, "sourceMap": true }
+          }
+        }
+      }
+    },
+    "mfe-profile": {
+      "projectType": "application",
+      "root": "projects/mfe-profile",
+      "sourceRoot": "projects/mfe-profile/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "projects/mfe-profile/src/main.ts",
+            "index": "projects/mfe-profile/src/index.html",
+            "tsConfig": "tsconfig.app.json",
+            "outputHashing": "none"
+          },
+          "defaultConfiguration": "production",
+          "configurations": {
+            "production": {},
+            "development": { "optimization": false, "sourceMap": true }
+          }
+        }
+      }
+    }
+  }
+}

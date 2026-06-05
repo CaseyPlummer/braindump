@@ -33,12 +33,14 @@ Everything else — bundler, repo layout, delivery model — is secondary to thi
 | [`performance.md`](./performance.md)             | Measured bundle/runtime cost, web-performance budgets, and the version-spread cost model                                                               |
 | [`recommendation.md`](./recommendation.md)       | A recommendation for the version-independence scenario, with the decision gate and trade-offs named                                                    |
 | [`isolation-demo/`](./isolation-demo/)           | A runnable barebones Angular MFE-as-web-component + a multi-runtime isolation proof (focused spike, not a full host)                                   |
+| [`poc/`](./poc/)                                 | A runnable **Flavor 1** reference: a real Angular host loading self-contained MFEs at runtime from a manifest, with a typed DOM contract both ways     |
 | [`sources.md`](./sources.md)                     | Consolidated, dated sources                                                                                                                            |
 
-> **Planned:** a `poc/` reference implementation — a realistic Angular host that
-> loads MFEs via a manifest with **share-when-aligned** runtime sharing (Native
-> Federation as the import-map/loader layer), where `isolation-demo/` only proves
-> the boundary. See _Host architecture_ in [`recommendation.md`](./recommendation.md).
+> **Next:** `poc/` realizes **Flavor 1** (manifest-driven runtime loading, pure
+> isolation). The planned follow-on is **Flavor 2** — the same host + MFEs with
+> **share-when-aligned** runtime sharing (Native Federation as the import-map/loader
+> layer), a non-breaking add-on. See _Host architecture_ in
+> [`recommendation.md`](./recommendation.md).
 
 ## Scope notes
 

@@ -7,9 +7,9 @@ that runs **several independent runtimes side by side** to show version isolatio
 
 > **Scope:** this is a focused spike that proves the **boundary and runtime
 > isolation** only. Its "host" is intentionally a static HTML page with `<script>`
-> tags — _not_ a realistic host. A separate `poc/` is planned for a realistic Angular
-> host with manifest-driven loading and share-when-aligned runtime sharing (see
-> _Host architecture_ in [`../recommendation.md`](../recommendation.md)).
+> tags — _not_ a realistic host. For a real Angular host with manifest-driven runtime
+> loading and a typed DOM contract, see [`../poc/`](../poc/) (Flavor 1) and _Host
+> architecture_ in [`../recommendation.md`](../recommendation.md).
 
 > Built on **Angular 22** (zoneless by default, esbuild, TypeScript 6). Requires
 > Node ≥ 24.15 for the v22 CLI.

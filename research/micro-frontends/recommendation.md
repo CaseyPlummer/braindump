@@ -84,7 +84,10 @@ In both flavors the host stays **thin**: routing, layout, auth/session, and load
 the shared component library once. Note that [`isolation-demo/`](./isolation-demo/)
 deliberately uses the _minimum_ host — a static HTML page with `<script>` tags — to
 prove the boundary and runtime isolation without the loading/sharing machinery; it is
-not a realistic host. A `poc/` is planned to show Flavor 2 end-to-end.
+not a realistic host. [`poc/`](./poc/) realizes **Flavor 1** end-to-end — a real Angular
+host with a manifest-driven `MfeLoaderService` and a typed DOM contract both ways
+(verified in a headless browser). Adding Flavor 2 sharing on top is the planned, non-
+breaking next step.
 
 ## Self-contained vs share-when-aligned — and why you can defer it
 
@@ -149,17 +152,20 @@ the hybrid's complexity up front for a cost you may never incur.
 
 ## Validation status
 
-- ✅ **Technically validated** — see [`isolation-demo/`](./isolation-demo/): three independent,
+- ✅ **Technically validated** — [`isolation-demo/`](./isolation-demo/): three independent,
   separately-versioned Angular runtimes coexist on one page with isolated state and
   working interactivity; per-MFE framework floor ~35 KB gzip; three-runtime page scores
   **95/100 on throttled mobile** (0 ms TBT).
+- ✅ **Flavor 1 realized** — [`poc/`](./poc/): a real Angular host loads two self-contained
+  MFEs at runtime from a manifest, with host→MFE inputs and MFE→host events working
+  (verified in a headless browser).
 - ✅ **Constraints confirmed:** web-component **boundary is locked in**; **1–2 MFEs/page**
   typical (≤5); version skew capped at **one major** (rarely up to three); delivery is
   **runtime remotes from a CDN**; SSR is a stretch goal, not a requirement.
 - 🟡 **Still open:**
   - **Self-contained now, or hybrid from day one?** (recommend self-contained first.)
   - CDN + **manifest/registry** infrastructure and the polyrepo **shared starter**.
-  - A `poc/` showing the realistic host end-to-end.
+  - A **Flavor 2** follow-on POC (share-when-aligned via Native Federation).
   - If SSR ever becomes a requirement, re-open the decision gate toward the
     shared-singleton path.
 
