@@ -138,6 +138,14 @@ edge**. That polyglot, Node-less-SSR capability is its real strength.
 - ❌ **Not Angular-native** — not built around the Angular CLI, esbuild, Angular
   Elements, or Native Federation; you'd bolt Angular into OC's registry/template model
   rather than use Angular's own modern MFE story.
+- ❌ **Two frameworks, not one** — OC is itself a framework (its own CLI, the
+  `template` + `server.js` data-layer contract, the `oc-client` runtime, and the
+  registry). Adopting it means developers learn and maintain **two** frameworks —
+  Angular **plus** OC — with Angular nested as an implementation detail inside an OC
+  template. The recommended web-component path adds **a browser standard, not a
+  framework**: `@angular/elements` + `customElements.define()`, so it stays **one
+  framework + a standard**. For a goal of letting Angular teams keep shipping Angular,
+  that developer-experience gap is decisive.
 - ⚪ **Headline strengths don't apply** — polyglot and Node-less edge SSR solve problems
   this scenario doesn't have (Angular-only; SSR is a stretch goal).
 - ✅ **One transferable idea** — OC's **versioned component registry** (immutable,
