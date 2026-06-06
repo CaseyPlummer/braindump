@@ -1,0 +1,32 @@
+<header>
+  <h1>Host shell (hybrid / share-when-aligned)</h1>
+  <p>
+    A real Angular host loading self-contained MFEs via <strong>Native Federation</strong>. Same
+    web-component boundary as Flavor 1, but the Angular runtime is <strong>shared</strong> when
+    versions align — so the MFE bundles carry no Angular of their own.
+  </p>
+</header>
+
+<section class="controls">
+  <label>
+    Customer (host → MFE input):
+    <input [value]="customer()" (input)="onCustomerInput($event)" />
+  </label>
+  <p>
+    Last selected order (MFE → host event): <strong>{{ lastOrder() ?? '—' }}</strong>
+  </p>
+</section>
+
+<main class="grid">
+  @if (has('mfe-orders')) {
+    <mfe-orders [customer]="customer()" (orderSelected)="onOrderSelected($event)"></mfe-orders>
+  } @else {
+    <p>Loading orders…</p>
+  }
+
+  @if (has('mfe-profile')) {
+    <mfe-profile [userId]="'u-42'"></mfe-profile>
+  } @else {
+    <p>Loading profile…</p>
+  }
+</main>

@@ -1,0 +1,35 @@
+{
+  "name": "poc-hybrid",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "build:mfes": "ng build mfe-orders && ng build mfe-profile",
+    "build:host": "ng build host",
+    "assemble": "node assemble.mjs",
+    "build": "npm run build:mfes && npm run build:host && npm run assemble",
+    "serve:dist": "node serve.mjs"
+  },
+  "private": true,
+  "packageManager": "npm@11.8.0",
+  "dependencies": {
+    "@angular/common": "^22.0.0",
+    "@angular/compiler": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/elements": "^22.0.0",
+    "@angular/forms": "^22.0.0",
+    "@angular/platform-browser": "^22.0.0",
+    "@angular/router": "^22.0.0",
+    "es-module-shims": "^2.8.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-architects/native-federation": "^22.0.0",
+    "@angular/build": "^22.0.0",
+    "@angular/cli": "^22.0.0",
+    "@angular/compiler-cli": "^22.0.0",
+    "@softarc/native-federation-orchestrator": "^4.2.2",
+    "prettier": "^3.8.1",
+    "typescript": "~6.0.2"
+  }
+}
