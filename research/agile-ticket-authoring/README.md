@@ -8,9 +8,12 @@ Written from the perspective of an architect who does the discovery, then hands 
 implementation. The bias throughout: **state the what and the why; leave the how to
 the implementer.**
 
+> **Pointing an AI agent at this folder?** Start with [`AGENTS.md`](AGENTS.md) — it tells
+> the agent how to use the kit to draft tickets, with the guardrails baked in.
+
 ## Files
 
-Organized by **audience**, which maps to the folders. 
+Organized by **audience**, which maps to the folders.
 
 ### `team/` — share/adopt verbatim
 
