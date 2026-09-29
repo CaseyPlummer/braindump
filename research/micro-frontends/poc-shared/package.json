@@ -1,0 +1,37 @@
+{
+  "name": "poc-shared",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "postinstall": "npm --prefix ng21 install --no-audit --no-fund",
+    "build:mfes": "ng build mfe-orders && ng build mfe-profile",
+    "build:ng21": "npm --prefix ng21 run build",
+    "build:host": "ng build host",
+    "assemble": "node assemble.mjs",
+    "build": "npm run build:mfes && npm run build:ng21 && npm run build:host && npm run assemble",
+    "serve:dist": "node serve.mjs"
+  },
+  "private": true,
+  "packageManager": "npm@11.8.0",
+  "dependencies": {
+    "@angular/common": "^22.2.0",
+    "@angular/compiler": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/elements": "^22.2.0",
+    "@angular/forms": "^22.2.0",
+    "@angular/platform-browser": "^22.2.0",
+    "@angular/router": "^22.2.0",
+    "es-module-shims": "^2.8.4",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-architects/native-federation": "~22.2.1",
+    "@angular/build": "^22.2.0",
+    "@angular/cli": "^22.2.0",
+    "@angular/compiler-cli": "^22.2.0",
+    "@softarc/native-federation-orchestrator": "^4.6.1",
+    "prettier": "^3.8.1",
+    "typescript": "~6.0.3"
+  }
+}

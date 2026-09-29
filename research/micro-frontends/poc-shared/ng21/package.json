@@ -1,0 +1,29 @@
+{
+  "name": "poc-shared-ng21",
+  "version": "0.0.0",
+  "description": "A Native Federation remote pinned one Angular major behind the host (Angular 21), used to exercise version-scoped sharing.",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "build": "ng build mfe-orders-ng21"
+  },
+  "dependencies": {
+    "@angular/common": "~21.2.24",
+    "@angular/compiler": "~21.2.24",
+    "@angular/core": "~21.2.24",
+    "@angular/elements": "~21.2.24",
+    "@angular/platform-browser": "~21.2.24",
+    "es-module-shims": "^2.8.4",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-architects/native-federation-v4": "~21.2.14",
+    "@angular/build": "~21.2.24",
+    "@angular/cli": "~21.2.24",
+    "@angular/compiler-cli": "~21.2.24",
+    "@softarc/native-federation": "~4.7.0",
+    "@softarc/native-federation-orchestrator": "^4.6.1",
+    "typescript": "~5.9.3"
+  }
+}

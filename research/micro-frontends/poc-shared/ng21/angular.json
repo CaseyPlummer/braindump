@@ -1,0 +1,87 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": {
+    "packageManager": "npm",
+    "analytics": false
+  },
+  "newProjectRoot": "projects",
+  "projects": {
+    "mfe-orders-ng21": {
+      "projectType": "application",
+      "root": "projects/mfe-orders-ng21",
+      "sourceRoot": "projects/mfe-orders-ng21/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-architects/native-federation-v4:build",
+          "options": {
+            "cacheExternalArtifacts": true,
+            "entryPoints": ["projects/mfe-orders-ng21/src/main.ts"],
+            "projectName": "mfe-orders-ng21",
+            "tsConfig": "projects/mfe-orders-ng21/tsconfig.federation.json"
+          },
+          "configurations": {
+            "production": {
+              "target": "mfe-orders-ng21:esbuild:production"
+            },
+            "development": {
+              "target": "mfe-orders-ng21:esbuild:development",
+              "dev": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-architects/native-federation-v4:build",
+          "options": {
+            "target": "mfe-orders-ng21:serve-original:development",
+            "rebuildDelay": 500,
+            "cacheExternalArtifacts": true,
+            "dev": true,
+            "devServer": true,
+            "port": 0,
+            "entryPoints": ["projects/mfe-orders-ng21/src/main.ts"],
+            "projectName": "mfe-orders-ng21",
+            "tsConfig": "projects/mfe-orders-ng21/tsconfig.federation.json"
+          }
+        },
+        "esbuild": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "projects/mfe-orders-ng21/src/main.ts",
+            "index": "projects/mfe-orders-ng21/src/index.html",
+            "tsConfig": "projects/mfe-orders-ng21/tsconfig.app.json",
+            "polyfills": ["es-module-shims"]
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve-original": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "mfe-orders-ng21:esbuild:production"
+            },
+            "development": {
+              "buildTarget": "mfe-orders-ng21:esbuild:development"
+            }
+          },
+          "defaultConfiguration": "development",
+          "options": {
+            "port": 4203
+          }
+        }
+      }
+    }
+  }
+}
