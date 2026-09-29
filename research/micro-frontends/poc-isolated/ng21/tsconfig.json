@@ -13,15 +13,9 @@
     "target": "ES2022",
     "module": "preserve",
     "paths": {
-      "@platform/sdk": [
-        "./projects/platform-sdk/src/index.ts"
-      ],
-      "@platform/angular": [
-        "./projects/platform-angular/src/index.ts"
-      ],
-      "@platform/angular/*": [
-        "./projects/platform-angular/src/*"
-      ]
+      "@platform/sdk": ["../projects/platform-sdk/src/index.ts"],
+      "@platform/angular": ["./projects/platform-angular/src/index.ts"],
+      "@platform/angular/*": ["./projects/platform-angular/src/*"]
     }
   },
   "angularCompilerOptions": {
@@ -30,9 +24,5 @@
     "strictTemplates": true
   },
   "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.app.json"
-    }
-  ]
+  "references": [{ "path": "./tsconfig.app.json" }]
 }

@@ -2,9 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>MFE host (Flavor 1)</title>
+    <title>MFE host (Isolated)</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      The platform SDK is loaded once per page. Host and MFE bundles keep
+      `import … from "@platform/sdk"` as an external; this map resolves it. The
+      host pins the exact SDK version; MFEs are built against its major.
+    -->
+    <script type="importmap">
+      { "imports": { "@platform/sdk": "/platform/sdk/1.0.0/sdk.js" } }
+    </script>
+    <!-- Fetch the SDK in parallel with main.js. (The CLI's automatic preload is off
+         because it would emit href="@platform/sdk", which bypasses the import map.) -->
+    <link rel="modulepreload" href="/platform/sdk/1.0.0/sdk.js" />
+    <link rel="icon" href="data:," />
   </head>
   <body>
     <app-root></app-root>

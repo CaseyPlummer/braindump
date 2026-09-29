@@ -1,14 +1,18 @@
 {
   "name": "poc-isolated",
   "version": "0.0.0",
-  "description": "Isolated-runtime host POC: a realistic Angular host loading self-contained web-component MFEs at runtime from a manifest (pure isolation, no federation).",
+  "description": "Isolated-runtime host POC: an Angular host loading self-contained web-component MFEs at runtime from a manifest (no federation), plus a framework-agnostic platform SDK for the cross-cutting concerns.",
   "private": true,
   "scripts": {
+    "setup": "npm install && npm --prefix ng21 install",
+    "build:sdk": "node projects/platform-sdk/build.mjs",
     "build:mfes": "ng build mfe-orders && ng build mfe-profile",
+    "build:ng21": "npm --prefix ng21 run build",
     "assemble": "node assemble.mjs",
-    "build": "npm run build:mfes && npm run assemble && ng build host",
-    "start": "npm run build:mfes && npm run assemble && ng serve host",
-    "serve:dist": "node serve.mjs"
+    "build": "npm run build:sdk && npm run build:mfes && npm run build:ng21 && npm run assemble && ng build host",
+    "start": "npm run build:sdk && npm run build:mfes && npm run build:ng21 && npm run assemble && ng serve host",
+    "serve:dist": "node serve.mjs",
+    "sizes": "node sizes.mjs"
   },
   "dependencies": {
     "@angular/common": "^22.2.0",
@@ -16,6 +20,7 @@
     "@angular/core": "^22.2.0",
     "@angular/elements": "^22.2.0",
     "@angular/platform-browser": "^22.2.0",
+    "@angular/router": "^22.2.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
@@ -23,6 +28,7 @@
     "@angular/build": "^22.2.0",
     "@angular/cli": "^22.2.0",
     "@angular/compiler-cli": "^22.2.0",
+    "esbuild": "^0.28.2",
     "typescript": "~6.0.3"
   }
 }

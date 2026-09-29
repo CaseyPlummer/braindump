@@ -1,0 +1,7 @@
+{
+  "name": "@platform/sdk",
+  "version": "1.0.0",
+  "description": "Framework-agnostic platform contract for MFEs: context protocol, well-known contexts, token provider, event bus.",
+  "private": true,
+  "type": "module"
+}

@@ -13,22 +13,44 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "projects/host/src/main.ts",
-            "index": "projects/host/src/index.html",
+            "index": {
+              "input": "projects/host/src/index.html",
+              "preloadInitial": false
+            },
             "tsConfig": "tsconfig.app.json",
-            "styles": ["projects/host/src/styles.css"],
-            "assets": [{ "glob": "**/*", "input": "projects/host/public" }]
+            "styles": [
+              "projects/host/src/styles.css"
+            ],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/host/public"
+              }
+            ],
+            "externalDependencies": [
+              "@platform/sdk"
+            ]
           },
           "configurations": {
-            "production": { "outputHashing": "none" },
-            "development": { "optimization": false, "sourceMap": true }
+            "production": {
+              "outputHashing": "none"
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
           },
           "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
-            "production": { "buildTarget": "host:build:production" },
-            "development": { "buildTarget": "host:build:development" }
+            "production": {
+              "buildTarget": "host:build:production"
+            },
+            "development": {
+              "buildTarget": "host:build:development"
+            }
           },
           "defaultConfiguration": "development"
         }
@@ -44,15 +66,46 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "projects/mfe-orders/src/main.ts",
-            "index": "projects/mfe-orders/src/index.html",
+            "index": {
+              "input": "projects/mfe-orders/src/index.html",
+              "preloadInitial": false
+            },
             "tsConfig": "tsconfig.app.json",
-            "outputHashing": "none"
+            "outputHashing": "none",
+            "externalDependencies": [
+              "@platform/sdk"
+            ],
+            "assets": [
+              {
+                "glob": "sdk.js",
+                "input": "dist/platform-sdk",
+                "output": "platform/sdk/1.0.0"
+              }
+            ]
           },
           "defaultConfiguration": "production",
           "configurations": {
             "production": {},
-            "development": { "optimization": false, "sourceMap": true }
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
           }
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "port": 4201
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "mfe-orders:build:production"
+            },
+            "development": {
+              "buildTarget": "mfe-orders:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
         }
       }
     },
@@ -66,15 +119,46 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "projects/mfe-profile/src/main.ts",
-            "index": "projects/mfe-profile/src/index.html",
+            "index": {
+              "input": "projects/mfe-profile/src/index.html",
+              "preloadInitial": false
+            },
             "tsConfig": "tsconfig.app.json",
-            "outputHashing": "none"
+            "outputHashing": "none",
+            "externalDependencies": [
+              "@platform/sdk"
+            ],
+            "assets": [
+              {
+                "glob": "sdk.js",
+                "input": "dist/platform-sdk",
+                "output": "platform/sdk/1.0.0"
+              }
+            ]
           },
           "defaultConfiguration": "production",
           "configurations": {
             "production": {},
-            "development": { "optimization": false, "sourceMap": true }
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
           }
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "port": 4202
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "mfe-profile:build:production"
+            },
+            "development": {
+              "buildTarget": "mfe-profile:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
         }
       }
     }

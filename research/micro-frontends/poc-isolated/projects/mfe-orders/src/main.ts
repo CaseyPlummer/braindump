@@ -1,67 +1,39 @@
 import { createApplication } from "@angular/platform-browser";
 import { createCustomElement } from "@angular/elements";
+import { provideBrowserGlobalErrorListeners } from "@angular/core";
 import {
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  provideBrowserGlobalErrorListeners,
-} from "@angular/core";
+  provideHttpClient,
+  withFetch,
+  withInterceptors,
+} from "@angular/common/http";
+import { assertSdkMajor } from "@platform/sdk";
+import { platformAuthInterceptor } from "@platform/angular/http";
+import { provideHostOwnedRouting } from "@platform/angular/routing";
+import { ORDERS_ROUTES } from "./app/pages";
+import { OrdersShell } from "./app/shell";
+
+// Fail during module evaluation (before any async work) if the host serves an
+// incompatible SDK major; the host's loader turns that into fallback UI.
+assertSdkMajor(1, "mfe-orders");
 
 /**
- * A self-contained "orders" domain MFE. It exposes a typed contract over the DOM:
- *  - input  `customer` (Angular @Input  -> element property/attribute)
- *  - output `orderSelected` (Angular @Output -> DOM CustomEvent)
- * The host binds these without knowing the element is Angular.
+ * The "orders" domain MFE: a self-contained Angular application (its own
+ * runtime) registered as <mfe-orders>, with internal routes whose URL the host
+ * owns. See projects/platform-angular/src/routing.ts for the routing contract.
  */
-@Component({
-  selector: "app-orders",
-  template: `
-    <section class="mfe">
-      <h3>Orders — {{ customer }}</h3>
-      <ul>
-        @for (id of orders; track id) {
-          <li>
-            <button (click)="select(id)">Select {{ id }}</button>
-          </li>
-        }
-      </ul>
-    </section>
-  `,
-  styles: `
-    .mfe {
-      padding: 12px;
-      border: 1px solid #888;
-      border-radius: 8px;
-    }
-    h3 {
-      margin: 0 0 8px;
-    }
-    ul {
-      margin: 0;
-      padding-left: 18px;
-    }
-    button {
-      cursor: pointer;
-    }
-  `,
-})
-export class OrdersComponent {
-  @Input() customer = "guest";
-  @Output() orderSelected = new EventEmitter<string>();
-  readonly orders = ["#1001", "#1002", "#1003"];
-
-  select(id: string): void {
-    this.orderSelected.emit(id);
-  }
-}
-
 void (async () => {
   const app = await createApplication({
-    providers: [provideBrowserGlobalErrorListeners()],
+    providers: [
+      provideBrowserGlobalErrorListeners(),
+      provideHttpClient(
+        withFetch(),
+        withInterceptors([platformAuthInterceptor]),
+      ),
+      ...provideHostOwnedRouting(ORDERS_ROUTES),
+    ],
   });
   customElements.define(
     "mfe-orders",
-    createCustomElement(OrdersComponent, { injector: app.injector }),
+    createCustomElement(OrdersShell, { injector: app.injector }),
   );
 })();

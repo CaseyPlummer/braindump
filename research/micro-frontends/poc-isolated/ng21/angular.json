@@ -1,0 +1,57 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": {
+    "packageManager": "npm",
+    "analytics": false
+  },
+  "newProjectRoot": "projects",
+  "projects": {
+    "mfe-cart-ng21": {
+      "projectType": "application",
+      "root": "projects/mfe-cart-ng21",
+      "sourceRoot": "projects/mfe-cart-ng21/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "projects/mfe-cart-ng21/src/main.ts",
+            "index": {
+              "input": "projects/mfe-cart-ng21/src/index.html",
+              "preloadInitial": false
+            },
+            "tsConfig": "tsconfig.app.json",
+            "outputHashing": "none",
+            "externalDependencies": [
+              "@platform/sdk"
+            ]
+          },
+          "defaultConfiguration": "production",
+          "configurations": {
+            "production": {},
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
+          }
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "port": 4203
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "mfe-cart-ng21:build:production"
+            },
+            "development": {
+              "buildTarget": "mfe-cart-ng21:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    }
+  }
+}

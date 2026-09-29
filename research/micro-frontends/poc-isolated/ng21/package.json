@@ -1,0 +1,26 @@
+{
+  "name": "poc-isolated-ng21",
+  "version": "0.0.0",
+  "description": "An Isolated-runtime MFE built on Angular 21 (one major behind the host), consuming the same @platform/sdk contract as the Angular 22 MFEs.",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "build": "ng build mfe-cart-ng21"
+  },
+  "dependencies": {
+    "@angular/common": "~21.2.24",
+    "@angular/compiler": "~21.2.24",
+    "@angular/core": "~21.2.24",
+    "@angular/elements": "~21.2.24",
+    "@angular/platform-browser": "~21.2.24",
+    "@angular/router": "~21.2.24",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "~21.2.24",
+    "@angular/cli": "~21.2.24",
+    "@angular/compiler-cli": "~21.2.24",
+    "typescript": "~5.9.3"
+  }
+}

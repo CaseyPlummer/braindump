@@ -2,15 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>mfe-orders (standalone dev)</title>
-    <!-- Same import map as the host, so the external @platform/sdk resolves. -->
+    <title>mfe-cart-ng21 (standalone dev)</title>
+    <!-- Resolves the external @platform/sdk from the host served by `npm run serve:dist`. -->
     <script type="importmap">
-      { "imports": { "@platform/sdk": "/platform/sdk/1.0.0/sdk.js" } }
+      { "imports": { "@platform/sdk": "http://localhost:8137/platform/sdk/1.0.0/sdk.js" } }
     </script>
   </head>
   <body>
     <!-- Only used for standalone dev of this MFE; the host loads the built bundle.
          No platform context provider here, so contexts render their defaults. -->
-    <mfe-orders customer="dev" base="" route="/"></mfe-orders>
+    <mfe-cart-ng21></mfe-cart-ng21>
   </body>
 </html>

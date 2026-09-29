@@ -1,33 +1,124 @@
 <header>
   <h1>Host shell</h1>
-  <p>
-    A real Angular host loading self-contained MFEs at runtime from a manifest —
-    no federation, no shared runtime.
-  </p>
+  <nav>
+    <a
+      routerLink="/"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      >Home</a
+    >
+    <a routerLink="/orders" routerLinkActive="active">Orders</a>
+  </nav>
+  <span class="muted" data-testid="host-cart"
+    >Cart (host view): {{ cartCount() }} item(s)</span
+  >
+  <span class="muted">&#64;platform/sdk {{ platform.sdkVersion }}</span>
 </header>
 
 <section class="controls">
   <label>
-    Customer (host → MFE input):
-    <input [value]="customer()" (input)="onCustomerInput($event)" />
+    User
+    <select (change)="platform.userId.set(value($event))">
+      @for (u of platform.users; track u.id) {
+      <option [value]="u.id" [selected]="u.id === platform.userId()">
+        {{ u.name }}
+      </option>
+      }
+    </select>
   </label>
-  <p>
+  <label>
+    Tenant
+    <select (change)="platform.tenantId.set(value($event))">
+      @for (t of platform.tenants; track t.id) {
+      <option [value]="t.id" [selected]="t.id === platform.tenantId()">
+        {{ t.name }}
+      </option>
+      }
+    </select>
+  </label>
+  <label>
+    Locale
+    <select (change)="platform.locale.set(value($event))">
+      @for (l of platform.locales; track l) {
+      <option [value]="l" [selected]="l === platform.locale()">{{ l }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    <input
+      type="checkbox"
+      [checked]="platform.themeMode() === 'dark'"
+      (change)="platform.themeMode.set(checked($event) ? 'dark' : 'light')"
+    />
+    Dark theme
+  </label>
+  <label>
+    <input
+      type="checkbox"
+      [checked]="platform.flags()['orders.showTotals']"
+      (change)="platform.toggleFlag('orders.showTotals', checked($event))"
+    />
+    flag orders.showTotals
+  </label>
+  <label>
+    <input
+      type="checkbox"
+      [checked]="platform.flags()['cart.recommendations']"
+      (change)="platform.toggleFlag('cart.recommendations', checked($event))"
+    />
+    flag cart.recommendations
+  </label>
+  <label>
+    Customer (host → MFE input)
+    <input
+      [value]="state.customer()"
+      (input)="state.customer.set(value($event))"
+    />
+  </label>
+  <span>
     Last selected order (MFE → host event):
-    <strong>{{ lastOrder() ?? '—' }}</strong>
-  </p>
+    <strong data-testid="last-order">{{ state.lastOrder() ?? '—' }}</strong>
+  </span>
 </section>
 
-<main class="grid">
-  @if (has('mfe-orders')) {
-  <mfe-orders
-    [customer]="customer()"
-    (orderSelected)="onOrderSelected($event)"
-  ></mfe-orders>
-  } @else {
-  <p>Loading orders…</p>
-  } @if (has('mfe-profile')) {
-  <mfe-profile [userId]="'u-42'"></mfe-profile>
-  } @else {
-  <p>Loading profile…</p>
+@if (overrides.length) {
+<section class="override" data-testid="override-banner">
+  Local override active: @for (o of overrides; track o[0]) {
+  <code>{{ o[0] }} → {{ o[1] }}</code>
   }
-</main>
+  <button (click)="clearOverrides()">Clear overrides</button>
+</section>
+}
+
+<div class="layout">
+  <main>
+    <router-outlet />
+  </main>
+  <aside>
+    @switch (loader.state('mfe-profile')) { @case ('ready') {
+    <mfe-profile [userId]="platform.userId()"></mfe-profile>
+    } @case ('failed') {
+    <app-mfe-fallback tag="mfe-profile" label="Profile" />
+    } @default {
+    <p>Loading profile…</p>
+    } } @switch (loader.state('mfe-cart-ng21')) { @case ('ready') {
+    <mfe-cart-ng21></mfe-cart-ng21>
+    } @case ('failed') {
+    <app-mfe-fallback tag="mfe-cart-ng21" label="Cart" />
+    } @default {
+    <p>Loading cart…</p>
+    } }
+    <section>
+      <strong>Platform events</strong>
+      @if (events().length) {
+      <ol class="log" data-testid="event-log">
+        @for (e of events(); track e.id) {
+        <li>{{ describe(e) }}</li>
+        }
+      </ol>
+      } @else {
+      <p class="muted">None yet.</p>
+      }
+    </section>
+  </aside>
+</div>
