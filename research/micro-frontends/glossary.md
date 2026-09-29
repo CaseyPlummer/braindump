@@ -8,6 +8,12 @@ Terms that recur across the micro-frontend literature, defined for this context.
   The _consumer_. In federation terms, the side that _consumes_.
 - **Remote / MFE / micro-app** — an independently-built unit loaded into a host.
   The _producer_. The side that _exposes_. One app can be both.
+- **Isolated host (isolated runtime)** — a host that loads web-component MFEs with
+  plain script tags, each MFE bundling its own copy of Angular. No federation. Nothing is shared, so no version coordination is ever needed;
+  every MFE pays for its own (tree-shaken) runtime.
+- **Shared host (shared runtime)** — a host that loads the same web-component MFEs
+  through Native Federation, sharing Angular among apps on the same major; an MFE on a different
+  major automatically gets its own private copy.
 - **Composition model** — where the pieces are stitched together:
   - **Build-time** — MFEs consumed as npm packages. Simple, but couples deploys
     (a change means rebuilding/redeploying the host). Usually disqualifies "MFE".
@@ -27,12 +33,22 @@ Terms that recur across the micro-frontend literature, defined for this context.
 - **Native Federation** — a framework- and bundler-agnostic implementation of the
   same ideas built on **browser-native ES modules + import maps**, with
   first-class Angular CLI / esbuild integration. No webpack. Created by the Angular
-  Architects (Manfred Steyer) team.
+  Architects (Manfred Steyer) team; since v4 its runtime (the "orchestrator") resolves
+  shared-dependency versions per remote and supports version-scoped sharing.
 - **Shared singleton** — a dependency (e.g. `@angular/core`) configured so exactly
   one instance is loaded and shared by host + all remotes on a page. Efficient, but
   forces those parties onto a **compatible version** (for Angular, effectively the
-  same major). `strictVersion` throws on mismatch; relaxed config falls back to a
-  second copy.
+  same major). What happens on a mismatch depends on the tool: in Module Federation,
+  `strictVersion` throws; in Native Federation v4, a mismatched remote gets its own
+  copy in an import-map scope, and it throws only in an explicit strict mode.
+- **Share scope / version-scoped sharing** — grouping apps so they share
+  dependencies only with apps on a compatible version line. In Native Federation,
+  `autoShareScope({ level: 'major' })` puts each Angular major in its own group:
+  same-major apps share one runtime; a different major gets a separate one.
+- **Import-map scope** — the `scopes` section of an import map, which lets modules
+  loaded from a given URL prefix resolve a bare specifier (e.g. `@angular/core`) to a
+  different URL than the rest of the page. The mechanism behind per-remote private
+  copies.
 
 ## Web components
 
@@ -45,6 +61,10 @@ Terms that recur across the micro-frontend literature, defined for this context.
 - **Self-contained MFE** — an MFE that carries its own framework runtime. The same
   build runs in hosts on different versions, at the cost of duplicating the runtime
   when versions diverge (see [`performance.md`](./performance.md)).
+- **Scoped custom element registry** — a per-shadow-root `CustomElementRegistry`,
+  letting two components register the same tag name without colliding. Shipped in
+  Chromium and Safari; not yet in stable Firefox, and not supported by Angular
+  Elements. Until then, MFEs use unique tag names.
 
 ## Versioning & interop
 
@@ -61,9 +81,17 @@ Terms that recur across the micro-frontend literature, defined for this context.
 ## Rendering & performance
 
 - **SSR (server-side rendering)** — render HTML on the server for fast first paint
-  and SEO. Historically hard with MFE; now feasible on the shared-singleton path
-  (Native Federation since Angular 18; MF 2.0 Node runtime). Hard-to-impractical
-  with multiple self-contained runtimes.
+  and SEO. Historically hard with MFE; feasible on the shared-singleton,
+  version-aligned path (Native Federation's Node runtime; MF 2.0's Node runtime).
+  Hard-to-impractical across a web-component boundary, because Angular can't yet
+  server-render or hydrate custom-element content.
+- **Fragment SSR** — each MFE renders its own HTML on a server endpoint; the host
+  (or an edge worker) splices it into the page for first paint, and the client-side
+  element replaces it on boot. First-paint benefit and no layout shift, without
+  cross-boundary hydration.
+- **Declarative Shadow DOM (DSD)** — `<template shadowrootmode="open">` markup that
+  creates a shadow root from HTML, so shadow-DOM components can be server-rendered.
+  Supported in all major browsers.
 - **Islands architecture / incremental hydration** — render mostly-static HTML and
   hydrate only the interactive regions ("islands"), independently and lazily.
   Angular expresses this via `@defer` with `hydrate` triggers. Each embedded MFE is
@@ -82,8 +110,8 @@ Terms that recur across the micro-frontend literature, defined for this context.
 - **esbuild** — Go-based bundler underpinning Angular's modern `application`
   builder. Native Federation's reference build path.
 - **Rspack** — Rust bundler, webpack-API-compatible, ships Module Federation 2.0
-  natively; markedly faster builds and lower memory (relevant to CI). Angular
-  support is maturing (community/Nx, not official Angular team).
+  natively; much faster than webpack and comparable to esbuild. Angular support is
+  third-party (Nx) and self-described as experimental; no official Angular support.
 - **Nx** — monorepo toolkit: task graph, computation caching, "affected"-only
   builds, and first-class Module Federation generators. Common backbone for fast
   MFE CI. Note: independent _deployability_ comes from the composition model, not
