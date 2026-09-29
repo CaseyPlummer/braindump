@@ -1,0 +1,93 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": {
+    "packageManager": "npm",
+    "analytics": false
+  },
+  "newProjectRoot": "projects",
+  "projects": {
+    "mfe-orders-ng21": {
+      "projectType": "application",
+      "root": "projects/mfe-orders-ng21",
+      "sourceRoot": "projects/mfe-orders-ng21/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist/mfe-orders-ng21",
+            "browser": "projects/mfe-orders-ng21/src/main.ts",
+            "server": "projects/mfe-orders-ng21/src/main.server.ts",
+            "ssr": {
+              "entry": "projects/mfe-orders-ng21/src/server.ts"
+            },
+            "index": "projects/mfe-orders-ng21/src/index.html",
+            "tsConfig": "projects/mfe-orders-ng21/tsconfig.app.json",
+            "outputHashing": "none"
+          },
+          "configurations": {
+            "production": {},
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    },
+    "mfe-orders-ng21-federated": {
+      "projectType": "application",
+      "root": "projects/mfe-orders-ng21",
+      "sourceRoot": "projects/mfe-orders-ng21/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-architects/native-federation-v4:build",
+          "options": {
+            "cacheExternalArtifacts": true,
+            "entryPoints": [
+              "projects/mfe-orders-ng21/src/main.federation.ts"
+            ],
+            "projectName": "mfe-orders-ng21-federated",
+            "tsConfig": "projects/mfe-orders-ng21/tsconfig.federation.json"
+          },
+          "configurations": {
+            "production": {
+              "target": "mfe-orders-ng21-federated:esbuild:production"
+            },
+            "development": {
+              "target": "mfe-orders-ng21-federated:esbuild:development",
+              "dev": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "esbuild": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist/mfe-orders-ng21-federated",
+            "browser": "projects/mfe-orders-ng21/src/main.federation.ts",
+            "index": "projects/mfe-orders-ng21/src/index.html",
+            "tsConfig": "projects/mfe-orders-ng21/tsconfig.app.json",
+            "polyfills": [
+              "es-module-shims"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true,
+              "extractLicenses": false
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    }
+  }
+}

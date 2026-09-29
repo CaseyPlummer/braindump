@@ -1,0 +1,5 @@
+# dependencies & build output (root and ng21/ workspaces)
+node_modules/
+dist/
+out-tsc/
+.angular/

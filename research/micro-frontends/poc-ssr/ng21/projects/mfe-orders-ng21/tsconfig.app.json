@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../out-tsc/mfe-orders-ng21",
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}

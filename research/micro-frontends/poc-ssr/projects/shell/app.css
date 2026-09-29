@@ -1,0 +1,54 @@
+:host {
+  display: block;
+  font:
+    15px/1.5 system-ui,
+    sans-serif;
+  max-width: 760px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+header {
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 16px;
+}
+h1 {
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+}
+header p {
+  margin: 0 0 12px;
+  color: #444;
+}
+.controls {
+  background: #f6f6f6;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.controls p {
+  margin: 8px 0 0;
+}
+.grid {
+  display: grid;
+  gap: 12px;
+}
+mfe-orders,
+mfe-orders-ng21 {
+  display: block;
+}
+input {
+  padding: 4px 8px;
+}
+.activity {
+  margin-top: 16px;
+  padding: 12px;
+  border-top: 1px solid #ddd;
+}
+.activity h2 {
+  font-size: 1.1rem;
+  margin: 0 0 4px;
+}
+.status {
+  color: #666;
+  font-size: 0.85rem;
+}

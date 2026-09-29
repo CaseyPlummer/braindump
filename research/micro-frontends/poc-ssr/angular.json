@@ -1,0 +1,195 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": {
+    "packageManager": "npm",
+    "analytics": false
+  },
+  "newProjectRoot": "projects",
+  "projects": {
+    "mfe-orders": {
+      "projectType": "application",
+      "root": "projects/mfe-orders",
+      "sourceRoot": "projects/mfe-orders/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist/mfe-orders",
+            "browser": "projects/mfe-orders/src/main.ts",
+            "server": "projects/mfe-orders/src/main.server.ts",
+            "ssr": {
+              "entry": "projects/mfe-orders/src/server.ts"
+            },
+            "index": "projects/mfe-orders/src/index.html",
+            "tsConfig": "projects/mfe-orders/tsconfig.app.json",
+            "outputHashing": "none"
+          },
+          "configurations": {
+            "production": {},
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    },
+    "host": {
+      "projectType": "application",
+      "root": "projects/host",
+      "sourceRoot": "projects/host/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist/host",
+            "browser": "projects/host/src/main.ts",
+            "server": "projects/host/src/main.server.ts",
+            "outputMode": "server",
+            "ssr": {
+              "entry": "projects/host/src/server.ts"
+            },
+            "index": "projects/host/src/index.html",
+            "tsConfig": "projects/host/tsconfig.app.json",
+            "styles": [
+              "projects/host/src/styles.css"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true,
+              "extractLicenses": false
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    },
+    "mfe-orders-federated": {
+      "projectType": "application",
+      "root": "projects/mfe-orders",
+      "sourceRoot": "projects/mfe-orders/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-architects/native-federation:build",
+          "options": {
+            "cacheExternalArtifacts": true,
+            "entryPoints": [
+              "projects/mfe-orders/src/main.federation.ts"
+            ],
+            "projectName": "mfe-orders-federated",
+            "tsConfig": "projects/mfe-orders/tsconfig.federation.json"
+          },
+          "configurations": {
+            "production": {
+              "target": "mfe-orders-federated:esbuild:production"
+            },
+            "development": {
+              "target": "mfe-orders-federated:esbuild:development",
+              "dev": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "esbuild": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist/mfe-orders-federated",
+            "browser": "projects/mfe-orders/src/main.federation.ts",
+            "index": "projects/mfe-orders/src/index.html",
+            "tsConfig": "projects/mfe-orders/tsconfig.app.json",
+            "polyfills": [
+              "es-module-shims"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true,
+              "extractLicenses": false
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    },
+    "host-shared": {
+      "projectType": "application",
+      "root": "projects/host-shared",
+      "sourceRoot": "projects/host-shared/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-architects/native-federation:build",
+          "options": {
+            "cacheExternalArtifacts": true,
+            "entryPoints": [
+              "projects/host-shared/src/main.ts"
+            ],
+            "projectName": "host-shared",
+            "tsConfig": "projects/host-shared/tsconfig.federation.json"
+          },
+          "configurations": {
+            "production": {
+              "target": "host-shared:esbuild:production"
+            },
+            "development": {
+              "target": "host-shared:esbuild:development",
+              "dev": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "esbuild": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist/host-shared",
+            "browser": "projects/host-shared/src/main.ts",
+            "server": "projects/host-shared/src/main.server.ts",
+            "outputMode": "server",
+            "ssr": {
+              "entry": "projects/host-shared/src/server.ts"
+            },
+            "index": "projects/host-shared/src/index.html",
+            "tsConfig": "projects/host-shared/tsconfig.app.json",
+            "styles": [
+              "projects/host-shared/src/styles.css"
+            ],
+            "polyfills": [
+              "es-module-shims"
+            ],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/host-shared/public"
+              }
+            ]
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true,
+              "extractLicenses": false
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    }
+  }
+}
