@@ -5,6 +5,8 @@ import {
   VERSION,
   computed,
   inject,
+  input,
+  output,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
   signal,
@@ -15,8 +17,10 @@ import {
   withFetch,
   withInterceptors,
 } from "@angular/common/http";
+import type { CartCheckoutDetail, MfeCartContract } from "@mfe/cart-contract";
 import { PlatformEvents, assertSdkMajor, bus } from "@platform/sdk";
 import { Platform, onPlatformEvent } from "@platform/angular";
+import type { AssertConforms, ContractCheck } from "@platform/angular/contract";
 import { platformAuthInterceptor } from "@platform/angular/http";
 
 assertSdkMajor(1, "mfe-cart-ng21");
@@ -28,7 +32,9 @@ type CartLine = PlatformEvents["cart.itemAdded@1"];
  * MFEs. It uses the same platform contract: contexts (session, locale, theme,
  * flags), the token provider (via the HTTP interceptor) and the event bus. It
  * both consumes `cart.itemAdded@1` from the Angular 22 orders MFE and publishes
- * its own events that the orders MFE receives.
+ * its own events that the orders MFE receives. Its element API (`currency` in,
+ * `checkout` out) is published as `@mfe/cart-contract` (contracts/cart/), the
+ * same framework-agnostic package the Angular 22 host compiles against.
  */
 @Component({
   selector: "app-cart",
@@ -69,6 +75,9 @@ type CartLine = PlatformEvents["cart.itemAdded@1"];
           </button>
         }
         <button (click)="clear()">Clear cart</button>
+        <button (click)="requestCheckout()" [disabled]="!lines().length">
+          Checkout
+        </button>
         <button (click)="sync()">Sync with API</button>
       </p>
       @if (api(); as api) {
@@ -136,6 +145,9 @@ export class CartComponent {
   );
   protected readonly api = signal<string | null>(null);
 
+  readonly currency = input("EUR");
+  readonly checkout = output<CartCheckoutDetail>();
+
   constructor() {
     // The cart state is derived from bus events, including the ones it publishes.
     onPlatformEvent("cart.itemAdded@1", (item) =>
@@ -154,8 +166,16 @@ export class CartComponent {
   money(amount: number): string {
     return new Intl.NumberFormat(this.platform.locale() ?? "en-US", {
       style: "currency",
-      currency: "EUR",
+      currency: this.currency(),
     }).format(amount);
+  }
+
+  requestCheckout(): void {
+    this.checkout.emit({
+      items: this.lines().reduce((sum, l) => sum + l.qty, 0),
+      total: this.total(),
+      currency: this.currency(),
+    });
   }
 
   addRecommended(): void {
@@ -196,7 +216,12 @@ void (async () => {
     ],
   });
   customElements.define(
-    "mfe-cart-ng21",
+    "mfe-cart-ng21" satisfies MfeCartContract["tag"],
     createCustomElement(CartComponent, { injector: app.injector }),
   );
 })();
+
+/** Compile-time proof that the element's API is exactly `@mfe/cart-contract`. */
+export type CartContractConformance = AssertConforms<
+  ContractCheck<CartComponent, MfeCartContract>
+>;

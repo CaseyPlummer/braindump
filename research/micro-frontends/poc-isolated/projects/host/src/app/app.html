@@ -79,6 +79,10 @@
     Last selected order (MFE → host event):
     <strong data-testid="last-order">{{ state.lastOrder() ?? '—' }}</strong>
   </span>
+  <span>
+    Last checkout request (Angular 21 MFE → host event):
+    <strong data-testid="last-checkout">{{ checkoutSummary() }}</strong>
+  </span>
 </section>
 
 @if (overrides.length) {
@@ -102,7 +106,10 @@
     } @default {
     <p>Loading profile…</p>
     } } @switch (loader.state('mfe-cart-ng21')) { @case ('ready') {
-    <mfe-cart-ng21></mfe-cart-ng21>
+    <mfe-cart-ng21
+      currency="EUR"
+      (checkout)="onCheckout($event)"
+    ></mfe-cart-ng21>
     } @case ('failed') {
     <app-mfe-fallback tag="mfe-cart-ng21" label="Cart" />
     } @default {

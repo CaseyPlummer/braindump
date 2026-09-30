@@ -90,7 +90,7 @@ const write = (name, entries) =>
 
 write("manifest.json", manifest);
 
-// --- Failure scenarios (host: /?manifest=broken, /?manifest=faulty) ----------------
+// --- Failure scenarios (host: /?manifest=broken, /?manifest=faulty, /?manifest=flaky)
 writeFileSync(
   join(mfesDir, "fixtures", "throws.js"),
   'throw new Error("Deliberate failure: this bundle throws while evaluating");\n',
@@ -114,6 +114,18 @@ write("manifest.faulty.json", [
     url: "mfes/fixtures/never-defines.js",
     timeoutMs: 3000,
   },
+]);
+
+// Transient outages, served by serve.mjs: `?fail=<n>` answers the first n requests
+// for the file with 503. Every request counts, including the diagnostic fetch the
+// loader makes after each failed attempt.
+write("manifest.flaky.json", [
+  byTag["mfe-orders"],
+  // 503 for attempt 1, its diagnosis and attempt 2; the second diagnosis finds the
+  // bundle healthy (digest verified), so retry 2 loads it.
+  { ...byTag["mfe-profile"], url: "mfes/mfe-profile.js?fail=3" },
+  // Down for longer than the retry policy covers: fallback after 3 attempts.
+  { ...byTag["mfe-cart-ng21"], url: "mfes/mfe-cart-ng21.js?fail=99" },
 ]);
 
 console.log(

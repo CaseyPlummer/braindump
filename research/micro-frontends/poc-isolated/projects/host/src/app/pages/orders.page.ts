@@ -1,8 +1,10 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, inject } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, UrlSegment } from "@angular/router";
+import type { MfeOrdersEventMap } from "@mfe/orders-contract";
 import { combineLatest, map } from "rxjs";
 import { HostState } from "../host-state";
+import { MfeOrdersBinding } from "../mfe-bindings";
 import { MfeFallback } from "../mfe-fallback";
 import { MfeLoaderService } from "../mfe-loader.service";
 
@@ -17,10 +19,14 @@ export function ordersMatcher(segments: UrlSegment[]) {
  * Host page for `/orders/**`. Translates the host URL into the MFE's `route`
  * input and applies the MFE's `navigate` events to the address bar. The host
  * router is the only one that touches `window.history` or reacts to popstate.
+ *
+ * The element's inputs and events are typed by `@mfe/orders-contract`:
+ * `MfeOrdersBinding` type-checks the property bindings, and `$event` in the
+ * event bindings is the contract's `CustomEvent<detail>`.
  */
 @Component({
   selector: "app-orders-page",
-  imports: [MfeFallback],
+  imports: [MfeFallback, MfeOrdersBinding],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     @switch (loader.state("mfe-orders")) {
@@ -63,18 +69,16 @@ export class OrdersPage {
     { initialValue: "/" },
   );
 
-  onNavigate(event: Event): void {
-    const { path, replace } = (
-      event as CustomEvent<{ path: string; replace?: boolean }>
-    ).detail;
+  onNavigate(event: MfeOrdersEventMap["navigate"]): void {
+    const { path, replace } = event.detail;
     const target = this.toHostUrl(path);
     if (this.router.url !== target) {
       void this.router.navigateByUrl(target, { replaceUrl: !!replace });
     }
   }
 
-  onOrderSelected(event: Event): void {
-    this.state.lastOrder.set((event as CustomEvent<string>).detail);
+  onOrderSelected(event: MfeOrdersEventMap["orderSelected"]): void {
+    this.state.lastOrder.set(event.detail);
   }
 
   /** `/` → `/orders`, `/?q=1` → `/orders?q=1`, `/1002` → `/orders/1002`. */

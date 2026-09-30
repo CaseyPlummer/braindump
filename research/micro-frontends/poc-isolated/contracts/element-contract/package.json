@@ -1,0 +1,8 @@
+{
+  "name": "@platform/element-contract",
+  "version": "1.0.0",
+  "description": "Types-only base for MFE element contracts: contract shape, typed element events, host-owned routing convention. No runtime code, no framework dependency.",
+  "private": true,
+  "types": "./index.d.ts",
+  "sideEffects": false
+}

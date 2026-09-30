@@ -6,6 +6,7 @@ import {
   withFetch,
   withInterceptors,
 } from "@angular/common/http";
+import type { MfeOrdersContract } from "@mfe/orders-contract";
 import { assertSdkMajor } from "@platform/sdk";
 import { platformAuthInterceptor } from "@platform/angular/http";
 import { provideHostOwnedRouting } from "@platform/angular/routing";
@@ -33,7 +34,7 @@ void (async () => {
     ],
   });
   customElements.define(
-    "mfe-orders",
+    "mfe-orders" satisfies MfeOrdersContract["tag"],
     createCustomElement(OrdersShell, { injector: app.injector }),
   );
 })();

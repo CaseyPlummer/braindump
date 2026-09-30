@@ -2,20 +2,23 @@ import { createApplication } from "@angular/platform-browser";
 import { createCustomElement } from "@angular/elements";
 import {
   Component,
-  Input,
   VERSION,
   computed,
   inject,
+  input,
   provideBrowserGlobalErrorListeners,
 } from "@angular/core";
+import type { MfeProfileContract } from "@mfe/profile-contract";
 import { assertSdkMajor } from "@platform/sdk";
 import { Platform } from "@platform/angular";
+import type { AssertConforms, ContractCheck } from "@platform/angular/contract";
 
 assertSdkMajor(1, "mfe-profile");
 
 /**
  * A second self-contained domain MFE. Besides its `userId` input it reads the
- * session, locale and theme from host-provided platform contexts.
+ * session, locale and theme from host-provided platform contexts. Its public
+ * API is published as `@mfe/profile-contract` (contracts/profile/).
  */
 @Component({
   selector: "app-profile",
@@ -28,7 +31,7 @@ assertSdkMajor(1, "mfe-profile");
     <section class="mfe">
       <h3>Profile</h3>
       <p>
-        User (input): <strong>{{ userId }}</strong>
+        User (input): <strong>{{ userId() }}</strong>
       </p>
       <p data-testid="profile-session">
         Session (context):
@@ -83,15 +86,20 @@ export class ProfileComponent {
     }).format(new Date("2024-03-14")),
   );
 
-  @Input() userId = "unknown";
+  readonly userId = input("unknown");
 }
+
+/** Compile-time proof that the element's API is exactly `@mfe/profile-contract`. */
+export type ProfileContractConformance = AssertConforms<
+  ContractCheck<ProfileComponent, MfeProfileContract>
+>;
 
 void (async () => {
   const app = await createApplication({
     providers: [provideBrowserGlobalErrorListeners()],
   });
   customElements.define(
-    "mfe-profile",
+    "mfe-profile" satisfies MfeProfileContract["tag"],
     createCustomElement(ProfileComponent, { injector: app.injector }),
   );
 })();

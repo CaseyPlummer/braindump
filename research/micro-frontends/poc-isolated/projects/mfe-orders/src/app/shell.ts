@@ -1,21 +1,24 @@
 import {
   Component,
-  EventEmitter,
-  Input,
-  Output,
   VERSION,
+  effect,
   inject,
+  input,
   isDevMode,
+  output,
   signal,
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { RouterLink, RouterOutlet } from "@angular/router";
+import type { MfeOrdersContract } from "@mfe/orders-contract";
 import { Platform, onPlatformEvent } from "@platform/angular";
+import type { AssertConforms, ContractCheck } from "@platform/angular/contract";
 import { HostRouteSync, NavigateDetail } from "@platform/angular/routing";
 import { Order } from "./orders.data";
 
 /**
- * Root component of <mfe-orders>. Public contract (unchanged plus routing):
+ * Root component of <mfe-orders>. Its public API is published as
+ * `@mfe/orders-contract` (contracts/orders/) and checked at the bottom of this file:
  *  - input  `customer`       host → MFE
  *  - output `orderSelected`  MFE → host (DOM CustomEvent, detail = "#1001")
  *  - input  `route`, `base`  host-owned URL → MFE router (see HostRouteSync)
@@ -35,7 +38,7 @@ import { Order } from "./orders.data";
     <section class="mfe">
       <header>
         <h3>
-          <a routerLink="/">Orders</a> — {{ customer }}
+          <a routerLink="/">Orders</a> — {{ customer() }}
           @if (devBuild) {
             <span class="badge">dev build</span>
           }
@@ -104,21 +107,18 @@ export class OrdersShell {
   protected readonly cartItems = signal(0);
   protected readonly lastCartSource = signal<string | null>(null);
 
-  @Input() customer = "guest";
-  @Output() orderSelected = new EventEmitter<string>();
-  @Output() navigate = new EventEmitter<NavigateDetail>();
-
+  readonly customer = input("guest");
+  readonly orderSelected = output<string>();
+  readonly navigate = output<NavigateDetail>();
   /** Mount path of this MFE in the host URL, e.g. `/orders`. */
-  @Input() set base(value: string) {
-    this.sync.setBase(value ?? "");
-  }
-
+  readonly base = input("");
   /** The MFE's sub-path, owned by the host, e.g. `/1002`. */
-  @Input() set route(value: string) {
-    this.sync.setRoute(value);
-  }
+  readonly route = input("/");
 
   constructor() {
+    // Effects run in creation order: the base is known before the first navigation.
+    effect(() => this.sync.setBase(this.base() ?? ""));
+    effect(() => this.sync.setRoute(this.route()));
     this.sync.navigations
       .pipe(takeUntilDestroyed())
       .subscribe((detail) => this.navigate.emit(detail));
@@ -137,3 +137,8 @@ export class OrdersShell {
     this.orderSelected.emit(`#${order.id}`);
   }
 }
+
+/** Compile-time proof that the element's API is exactly `@mfe/orders-contract`. */
+export type OrdersContractConformance = AssertConforms<
+  ContractCheck<OrdersShell, MfeOrdersContract>
+>;

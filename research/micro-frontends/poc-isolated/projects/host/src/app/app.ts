@@ -4,18 +4,21 @@ import {
   DestroyRef,
   ElementRef,
   OnInit,
+  computed,
   inject,
   signal,
 } from "@angular/core";
 import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
+import type { MfeCartEventMap } from "@mfe/cart-contract";
 import { BusEnvelope, bus } from "@platform/sdk";
 import { HostState } from "./host-state";
+import { MfeCartBinding, MfeProfileBinding } from "./mfe-bindings";
 import { MfeFallback } from "./mfe-fallback";
 import { MfeLoaderService } from "./mfe-loader.service";
 import { clearOverrides, readOverrides } from "./mfe-overrides";
 import { PlatformHost } from "./platform-host.service";
 
-/** Demo failure scenarios: `?manifest=broken` or `?manifest=faulty` (see assemble.mjs). */
+/** Demo failure scenarios: `?manifest=broken`, `faulty` or `flaky` (see assemble.mjs). */
 function manifestUrl(): string {
   const scenario = new URLSearchParams(location.search).get("manifest");
   return scenario && /^[a-z]+$/.test(scenario)
@@ -26,7 +29,14 @@ function manifestUrl(): string {
 @Component({
   selector: "app-root",
   templateUrl: "./app.html",
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MfeFallback],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    MfeFallback,
+    MfeProfileBinding,
+    MfeCartBinding,
+  ],
   // CUSTOM_ELEMENTS_SCHEMA lets the host template use unknown <mfe-*> tags and
   // bind their inputs/events without Angular knowing they are Angular.
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -117,6 +127,15 @@ export class App implements OnInit {
   protected readonly overrides = Object.entries(readOverrides());
   protected readonly events = signal<BusEnvelope[]>([]);
   protected readonly cartCount = signal(0);
+  protected readonly checkoutSummary = computed(() => {
+    const checkout = this.state.lastCheckout();
+    if (!checkout) return "—";
+    const total = new Intl.NumberFormat(this.platform.locale(), {
+      style: "currency",
+      currency: checkout.currency,
+    }).format(checkout.total);
+    return `${checkout.items} item(s), ${total}`;
+  });
 
   constructor() {
     // Serve session, locale, theme, flags and the token provider to every MFE
@@ -144,6 +163,10 @@ export class App implements OnInit {
 
   protected checked(event: Event): boolean {
     return (event.target as HTMLInputElement).checked;
+  }
+
+  protected onCheckout(event: MfeCartEventMap["checkout"]): void {
+    this.state.lastCheckout.set(event.detail);
   }
 
   protected clearOverrides(): void {

@@ -10,6 +10,8 @@
  *   @platform/angular          contexts as signals, bus helper
  *   @platform/angular/http     token interceptor (needs @angular/common/http)
  *   @platform/angular/routing  host-owned routing (needs @angular/router)
+ *   @platform/angular/contract compile-time check that a component conforms to
+ *                              its element contract package (types only)
  */
 export {
   injectContext,

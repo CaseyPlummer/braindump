@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["projects/**/*.ts", "../contracts/element-contract/*.d.ts", "../contracts/cart/*.d.ts"]
+}

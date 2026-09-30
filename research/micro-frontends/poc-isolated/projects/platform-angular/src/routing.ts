@@ -14,6 +14,7 @@ import {
   provideRouter,
   withDisabledInitialNavigation,
 } from "@angular/router";
+import type { NavigateDetail } from "@platform/element-contract";
 import { Observable, filter, map } from "rxjs";
 
 /**
@@ -30,11 +31,11 @@ import { Observable, filter, map } from "rxjs";
  * `window.history` and never subscribes to `popstate`. Only the host's router
  * reacts to back/forward, so a history step causes exactly one navigation per
  * router and the two can never fight over the address bar.
+ *
+ * The inputs and the event detail are a platform convention declared in
+ * `@platform/element-contract` (`HostRoutedInputs`, `HostRoutedEvents`).
  */
-export interface NavigateDetail {
-  path: string;
-  replace?: boolean;
-}
+export type { NavigateDetail };
 
 /** In-memory LocationStrategy: the router's URL lives only inside the MFE. */
 @Injectable()

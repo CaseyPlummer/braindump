@@ -15,7 +15,11 @@
     "paths": {
       "@platform/sdk": ["../projects/platform-sdk/src/index.ts"],
       "@platform/angular": ["./projects/platform-angular/src/index.ts"],
-      "@platform/angular/*": ["./projects/platform-angular/src/*"]
+      "@platform/angular/*": ["./projects/platform-angular/src/*"],
+      "@platform/element-contract": [
+        "../contracts/element-contract/index.d.ts"
+      ],
+      "@mfe/cart-contract": ["../contracts/cart/index.d.ts"]
     }
   },
   "angularCompilerOptions": {

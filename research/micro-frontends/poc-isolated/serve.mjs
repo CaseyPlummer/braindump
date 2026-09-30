@@ -7,6 +7,11 @@
 //
 // Mock API: GET /api/echo echoes the request's Authorization header, so the demo
 // can show the token each MFE's HTTP interceptor attached. No real auth.
+//
+// Outage simulation (loader retry test): `?fail=<n>` on a file URL answers the
+// first n requests for that file with 503. Counters are per path, so the
+// loader's retry parameter doesn't reset them; every fetch of
+// manifest.flaky.json re-arms them, so each page load replays the scenario.
 import { createServer } from "node:http";
 import { readFile } from "node:fs";
 import { join, extname, dirname, resolve } from "node:path";
@@ -22,6 +27,7 @@ const { values: args } = parseArgs({
 });
 const root = resolve(here, args.root);
 const port = Number(args.port);
+const failures = new Map();
 const types = {
   ".html": "text/html",
   ".js": "text/javascript",
@@ -45,6 +51,22 @@ createServer((req, res) => {
       }),
     );
     return;
+  }
+
+  if (path.endsWith("/manifest.flaky.json")) failures.clear();
+  const failFirst = Number(new URLSearchParams(query).get("fail") ?? 0);
+  if (failFirst > 0) {
+    const seen = (failures.get(path) ?? 0) + 1;
+    failures.set(path, seen);
+    if (seen <= failFirst) {
+      res.writeHead(503, {
+        "Content-Type": "text/plain",
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-store",
+      });
+      res.end(`simulated outage (${seen}/${failFirst})`);
+      return;
+    }
   }
 
   const file = path === "/" ? "/index.html" : path;

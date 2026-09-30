@@ -10,10 +10,12 @@ HTML page, this shows the **realistic host**: manifest-driven loading, a loader 
 a typed DOM contract (inputs down, events up), and the **cross-cutting concerns usually
 attributed to Native Federation** handled without it:
 
-- a framework-agnostic **platform SDK** loaded once per page (context protocol, token
+- a framework-agnostic **host services library** (`@platform/sdk`, "the SDK" below) loaded once per page (context protocol, token
   provider, event bus);
 - **host-owned URLs** for an MFE with internal routes;
-- **loader resilience** (timeouts, fallback UI, SRI);
+- **typed contracts**: one types-only package per MFE, enforced in the MFE's build
+  and the host's;
+- **loader resilience** (timeouts, fallback UI, SRI, retry of transient failures);
 - a **local-dev manifest override**;
 - a **cross-version proof**: an Angular 21 MFE using the same contract as the Angular 22
   host and MFEs.
@@ -38,16 +40,21 @@ needed anyway. With that contract in place, the Isolated host gives up little.
    `<mfe-profile>` and `<mfe-cart-ng21>` with `CUSTOM_ELEMENTS_SCHEMA`; nothing tells it
    they're Angular.
 3. **Typed DOM contract both directions.**
-   - **host → MFE:** `[customer]="…"` flows into `mfe-orders`' `@Input`.
-   - **MFE → host:** `mfe-orders` emits an `@Output` (`orderSelected`) that surfaces as
+   - **host → MFE:** `[customer]="…"` flows into `mfe-orders`' signal `input()`.
+   - **MFE → host:** `mfe-orders` emits an `output()` (`orderSelected`) that surfaces as
      a DOM `CustomEvent`; the host listens with `(orderSelected)=...` and shows the value.
+     The Angular 21 cart does the same with `currency` in and `checkout` out.
+   - Each element's inputs and events are published as a **types-only contract
+     package**; the MFE and the host both compile against it
+     ([below](#typed-contracts)).
 4. **Several MFEs composing on one page**, each a separate build with its own runtime,
    across two Angular majors.
-5. **Platform SDK** for session, locale, theme, feature flags, access tokens and app-wide
-   events ([below](#platform-sdk)).
+5. **Host services library** for session, locale, theme, feature flags, access tokens and app-wide
+   events ([below](#host-services-library-platformsdk)).
 6. **Routing contract**: the orders MFE has internal routes; the host owns the address
    bar ([below](#routing-contract)).
-7. **Resilience**, **local-dev override**, **cross-version** use of the SDK
+7. **Resilience** with a retry policy for transient failures, **local-dev
+   override**, **cross-version** use of the SDK and of the contracts
    ([below](#loader-resilience)).
 
 ## Architecture
@@ -64,9 +71,16 @@ projects/
 ng21/                separate Angular 21 workspace (own package.json)
   projects/mfe-cart-ng21/     <mfe-cart-ng21>: mini-cart on Angular 21
   projects/platform-angular/  the same adapter source, built against Angular 21
+contracts/           types-only packages, no framework dependency
+  element-contract/  @platform/element-contract: contract shape, typed element events,
+                     the host-owned routing convention
+  orders/ profile/ cart/      @mfe/orders-contract, @mfe/profile-contract,
+                              @mfe/cart-contract: one per MFE
+contract-tests/      type-level tests of the contracts and the conformance check
 assemble.mjs         publishes SDK + bundles into host/public/, computes SRI hashes,
                      writes manifest.json and the failure-scenario manifests
-serve.mjs            static server for the built host + mock API (/api/echo)
+serve.mjs            static server for the built host + mock API (/api/echo) +
+                     simulated outages (?fail=<n>)
 sizes.mjs            raw/gzip sizes of everything the page downloads
 ```
 
@@ -81,6 +95,7 @@ npm run setup          # npm install here and in ng21/
 
 npm run build          # SDK → Angular 22 MFEs → Angular 21 MFE → assemble → host
 npm run serve:dist     # http://localhost:8137
+npm run test:contracts # contract conformance, both workspaces
 npm run sizes          # bundle sizes of the built page
 ```
 
@@ -96,13 +111,14 @@ Useful URLs on the served build:
 | `/orders/all`                                             | A redirect inside the MFE; the host replaces the history entry |
 | `/?manifest=broken`                                       | SRI mismatch (profile) and 404 (cart): fallbacks, orders fine  |
 | `/?manifest=faulty`                                       | Bundle throws (profile) and never registers (cart): fallbacks  |
+| `/?manifest=flaky`                                        | 503s: profile recovers on its 2nd retry, cart falls back       |
 | `/?mfe-override=mfe-orders=http://localhost:4201/main.js` | Local-dev override ([below](#local-dev-override))              |
 
 The controls at the top switch user, tenant, locale, theme and feature flags; every MFE
 updates live. `npm start` serves the host with live reload (`ng serve host`); the mock
 API only exists under `serve:dist`.
 
-## Platform SDK
+## Host services library (`@platform/sdk`)
 
 `projects/platform-sdk/` is the whole platform contract, in plain TypeScript:
 
@@ -221,20 +237,138 @@ Alternatives rejected:
 - **No router in the MFE, input-driven view switching:** safe, but loses route params,
   guards, resolvers and `routerLink`, so each team reinvents them.
 
+## Typed contracts
+
+Each MFE publishes its element API as a small types-only package, and both sides
+compile against it: the MFE proves it implements the contract, and the host gets
+typed properties and event payloads. The packages contain no runtime code and
+depend on no framework, so the Angular 21 cart uses its contract exactly as the
+Angular 22 MFEs use theirs.
+
+| Package                      | Declares                                                                                                                                                        |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@platform/element-contract` | `ElementContract` (`tag`, `inputs`, `events`), `ContractElement` (typed `addEventListener`), `ContractEventMap`, `ContractAttributes`, the routing inputs/event |
+| `@mfe/orders-contract`       | `mfe-orders`: `customer`, `route`, `base` in; `orderSelected: string`, `navigate: NavigateDetail` out                                                           |
+| `@mfe/profile-contract`      | `mfe-profile`: `userId` in; no events                                                                                                                           |
+| `@mfe/cart-contract`         | `mfe-cart-ng21`: `currency` in; `checkout: CartCheckoutDetail` out                                                                                              |
+
+Every contract package augments `HTMLElementTagNameMap`
+(`'mfe-orders': MfeOrdersElement`), so the tag name alone selects the typed
+element: `document.createElement('mfe-orders').customer` is a `string`, and
+`addEventListener('orderSelected', e => …)` receives `CustomEvent<string>`. Native
+events keep their DOM types; unknown event names fall back to plain `Event`.
+Contract events are dispatched on the element by Angular Elements and don't
+bubble. In the POC, `tsconfig.json` `paths` map the package names to
+`contracts/`; in production each is published with its MFE, versioned by semver.
+
+### Where types are enforced
+
+| Where                    | Mechanism                                                                                                                                   | Catches                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| MFE build                | `AssertConforms<ContractCheck<Component, Contract>>` (`@platform/angular/contract`) over the root component's signal `input()`s/`output()`s | Missing, extra or retyped inputs and events, in either direction                     |
+| MFE build                | `customElements.define("mfe-orders" satisfies MfeOrdersContract["tag"], …)`                                                                 | Tag drift                                                                            |
+| Host TypeScript          | `HTMLElementTagNameMap` augmentation; handlers typed as `MfeOrdersEventMap["orderSelected"]`                                                | Wrong property types, unknown properties, wrong `detail` use                         |
+| Host templates, events   | Angular's type-check block creates the element with `document.createElement(tag)` and types `$event` through its `addEventListener`         | `detail` misuse; a misspelt event name yields `Event`, which a typed handler rejects |
+| Host templates, inputs   | One small directive per element (`mfe-bindings.ts`) claiming its inputs with setters typed by the contract                                  | Wrong binding types                                                                  |
+| `npm run test:contracts` | `ngc` type-check of both workspaces plus `contract-tests/` (with `@ts-expect-error` cases)                                                  | All of the above, in CI, without bundling                                            |
+
+`ContractCheck` compares key sets and types exactly and names each difference.
+Changing `orderSelected` to `{ id: number }` in the contract alone fails the orders
+build, the host and the contract tests:
+
+```text
+projects/mfe-orders/src/app/shell.ts:143:3 - error TS2344: Type '"mfe-orders: event \"orderSelected\" has a different detail type in the contract"' does not satisfy the constraint '"conforms"'.
+projects/host/src/app/pages/orders.page.ts:81:30 - error TS2345: Argument of type '{ id: number; }' is not assignable to parameter of type 'string'.
+contract-tests/usage.ts:23:60 - error TS2339: Property 'startsWith' does not exist on type '{ id: number; }'.
+```
+
+Adding `compact = input(false)` to the orders component without a contract change
+fails the other way:
+
+```text
+projects/mfe-orders/src/app/shell.ts:144:3 - error TS2344: Type '"mfe-orders: component input \"compact\" is not in the contract"' does not satisfy the constraint '"conforms"'.
+```
+
+Renaming `items` in `@mfe/cart-contract` fails the Angular 21 build (`'items' does
+not exist in type 'CartCheckoutDetail'`) and the Angular 22 host
+(`Property 'items' does not exist on type 'CartCheckoutDetail'`).
+
+### Limitations of template checking under `CUSTOM_ELEMENTS_SCHEMA`
+
+- **Property bindings aren't type-checked** by Angular on custom elements; the
+  schema accepts any of them. The binding directives restore type checking for
+  the inputs they declare, but **a misspelt input** (`[custmer]`) still falls back
+  to an unchecked DOM property and compiles. The directives are per-element host
+  code (short, and `implements` the contract's inputs interface so they can't
+  omit one); a generator could emit them from the contract.
+- **Event bindings are typed** only with `strictTemplates` (which enables
+  `strictDomEventTypes`). A misspelt event name is caught only when the handler
+  parameter is typed; `(orderSelectd)="log($event)"` with an untyped handler
+  compiles and never fires.
+- **Attributes** (`currency="EUR"`) are strings and not checked beyond the
+  directive's input type; `ContractAttributes<C>` gives the kebab-case names for
+  code that sets attributes.
+- **Conformance needs signal APIs.** `ContractCheck` sees public `input()` and
+  `output()` members by type; decorator `@Input`s are invisible to it, and an
+  `alias` would change the DOM name without the check noticing. Every MFE here
+  uses unaliased signal inputs and outputs.
+- **Types only.** Nothing checks at runtime that the bundle a manifest points at
+  implements the contract version the host was built against. Contract packages
+  follow semver: additive changes are minor, and a breaking change needs the host
+  and MFE released together, or a new tag served alongside the old one.
+
 ## Loader resilience
 
 `MfeLoaderService` loads every manifest entry independently:
 
-- **Timeout** per MFE (`timeoutMs`, default 10 s) waiting for `customElements.whenDefined`.
-- **Fast failure**: the script's `error` event (network error, 404, SRI mismatch) and
-  window `error` events whose `filename` is the bundle URL (throws during evaluation)
-  settle immediately instead of waiting for the timeout.
+- **Time budget** per MFE (`timeoutMs`, default 10 s) until
+  `customElements.whenDefined`, covering every attempt and backoff.
+- **Fast failure**: the script's `error` event (network error, HTTP error, SRI
+  mismatch) and window `error` events whose `filename` is the bundle URL (throws
+  during evaluation) settle immediately instead of waiting for the timeout.
+- **Retry of transient failures** ([below](#retry-policy)).
 - **Fallback UI** per slot (`<app-mfe-fallback>`), with the reason; the other MFEs and
   the host are unaffected.
 - **Subresource Integrity**: `assemble.mjs` writes a `sha384-…` `integrity` per bundle;
   the loader sets `script.integrity` (+ `crossOrigin="anonymous"`), and the browser
   refuses a mismatching bundle.
 - **Tag collisions**: an entry whose tag is already defined is refused.
+
+### Retry policy
+
+| Failure                                      | Retried | Why                                              |
+| -------------------------------------------- | ------- | ------------------------------------------------ |
+| Network error, HTTP 5xx, 408, 429            | yes     | Transient: the same request can succeed later    |
+| SRI mismatch                                 | no      | Deterministic: the bytes on the server are wrong |
+| Other HTTP errors (404, 403, …), non-JS type | no      | Deterministic                                    |
+| Bundle throws while evaluating               | no      | Deterministic, and it has already run            |
+| Bundle loads but never registers its element | no      | Deterministic; ends at the timeout               |
+
+Up to **2 retries**, with backoff **250 ms then 1 s, ±25 % jitter**, and only while
+the MFE's time budget still covers the wait. The failure message records the
+reason and attempts, e.g. `failed to load mfes/mfe-cart-ng21.js (HTTP 503, 3
+attempts)`.
+
+**Classifying the failure.** A `<script>` `error` event looks the same for a 503,
+a 404, a dropped connection and an SRI mismatch. After a failed attempt the loader
+fetches the same URL once (`cache: "no-store"`): a network error or a 5xx/408/429
+is transient; another HTTP status is not; a 200 whose SHA digest doesn't match the
+manifest's `integrity` is an SRI mismatch; a 200 that does match means the fault
+has already cleared, so the retry goes ahead. The diagnostic request is made only
+after a failure, so a healthy page makes no extra requests.
+
+**Retry URLs.** A module URL that failed stays failed for the document: the
+module map caches the failure, and a second `<script>` or `import()` of the same
+URL rejects without touching the network (verified in Chromium). Each retry
+therefore adds `?mfe-retry=<n>` to the bundle URL, giving it a fresh module-map
+entry. The retry is still a `<script type="module">` with the manifest's
+`integrity`, so the browser enforces SRI on it as on the first attempt. The
+alternative, fetching the bytes and running them from a `blob:` URL, would move
+SRI enforcement into application code, need `blob:` in the CSP `script-src`, and
+turn stack traces and `import.meta.url` into `blob:` URLs.
+
+`/?manifest=flaky` runs this against `serve.mjs`, which answers the first `n`
+requests for a file with `?fail=<n>` with 503 (re-armed on every page load).
 
 ## Local-dev override
 
@@ -300,14 +434,32 @@ Checked with Playwright (Chromium) against `npm run serve:dist`:
   one `history` write (two for the redirect: push, then replace), all from the host
   router, and at most one MFE router navigation, always
   `navigationTrigger: "imperative"`, never `"popstate"`.
-- **Failures:** `?manifest=broken` shows fallbacks within ~80 ms (SRI mismatch blocked by
-  the browser; 404); `?manifest=faulty` catches the evaluation error at once and the
-  never-registering bundle after its 3 s timeout. The orders MFE keeps working in both.
+- **Failures:** `?manifest=broken` shows fallbacks within ~80 ms: `integrity mismatch`
+  (profile) and `HTTP 404` (cart), each after exactly one script request and one
+  diagnostic fetch, no retry. `?manifest=faulty` catches the evaluation error at
+  once and the never-registering bundle after its 3 s timeout, one request each, no
+  diagnosis, no retry. The orders MFE keeps working in both.
+- **Retry:** `?manifest=flaky` produced this request sequence (network log):
+  profile `503` (attempt 1), `503` (diagnosis), `?mfe-retry=1` `503`, diagnosis `200`
+  with a matching digest, `?mfe-retry=2` `200` after 1.07 s backoff, logged
+  `"mfe-profile" loaded on attempt 3` and rendered normally. Cart: three attempts and
+  three diagnoses, all `503`, then the fallback `HTTP 503, 3 attempts` about 1.1 s
+  in. Orders loaded once, unaffected. A `?mfe-override` pointed at a server that
+  wasn't listening yet recovered on retry 1 (`network error`).
+- **Module map:** after a 503, a second `<script>` and an `import()` of the same URL
+  both failed without a network request; the `?mfe-retry=1` URL was fetched and
+  loaded. A retry URL with a wrong `integrity` is still refused.
+- **Contracts:** `npm run test:contracts` passes in both workspaces; the deliberate
+  breaks in [Typed contracts](#typed-contracts) fail with the errors shown.
+  In the browser, the host's typed bindings set `customer`, `route`, `base`,
+  `userId` and `currency` on the elements, and the Angular 21 cart's `checkout`
+  event reaches the host (`1 item(s), €289.00`, reformatted to `289,00 €` after a
+  locale switch).
 - **Override:** `ng serve mfe-orders` bundle loads into the host (shows a _dev build_
   badge), persists across reloads, a non-localhost target is rejected, `reset` restores
   the published bundle.
 - **Console:** no errors or warnings on normal pages; only the induced ones in the
-  failure and override-rejection scenarios.
+  failure, flaky and override-rejection scenarios.
 
 ## Measured
 
@@ -317,14 +469,14 @@ still carries its own tree-shaken Angular runtime; only the SDK is shared.
 | Bundle                      | Before (raw / gzip) | Now (raw / gzip) | Delta, and why                                                                |
 | --------------------------- | ------------------- | ---------------- | ----------------------------------------------------------------------------- |
 | `platform/sdk/1.0.0/sdk.js` | —                   | 2.2 / 1.0 kB     | the whole platform contract, loaded once                                      |
-| Host `main.js`              | 105.7 / 35.5 kB     | 240.7 / 74.6 kB  | +135 kB raw: host router (77 kB) and its core/common use                      |
-| `mfes/mfe-orders.js`        | 119.1 / 39.5 kB     | 258.3 / 80.2 kB  | +139 kB raw: router (74 kB), `HttpClient` + `Location` (~25 kB), more of core |
-| `mfes/mfe-profile.js`       | 108.9 / 36.1 kB     | 121.4 / 40.6 kB  | +12.5 kB raw: adapter (1.0 kB), signals/`computed`, UI                        |
-| `mfes/mfe-cart-ng21.js`     | —                   | 154.1 / 50.6 kB  | new: Angular 21 runtime + `HttpClient`                                        |
-| **Whole page**              | 333.7 / 111.1 kB    | 776.7 / 247.1 kB | five bundles instead of three                                                 |
+| Host `main.js`              | 105.7 / 35.5 kB     | 244.0 / 75.8 kB  | +138 kB raw: host router (77 kB) and its core/common use, loader retry        |
+| `mfes/mfe-orders.js`        | 119.1 / 39.5 kB     | 261.1 / 81.1 kB  | +142 kB raw: router (74 kB), `HttpClient` + `Location` (~25 kB), more of core |
+| `mfes/mfe-profile.js`       | 108.9 / 36.1 kB     | 121.8 / 40.7 kB  | +12.9 kB raw: adapter (1.0 kB), signals/`computed`, UI                        |
+| `mfes/mfe-cart-ng21.js`     | —                   | 155.7 / 51.1 kB  | new: Angular 21 runtime + `HttpClient`                                        |
+| **Whole page**              | 333.7 / 111.1 kB    | 784.8 / 249.8 kB | five bundles instead of three                                                 |
 
 The platform contract itself is small: 1.0 kB gzip for the SDK plus 1–3 kB raw of
-adapter per MFE. The real per-MFE cost of isolation is framework features: an MFE that
+adapter per MFE. The typed contracts add nothing: they are types only. The real per-MFE cost of isolation is framework features: an MFE that
 uses the Angular router pays ~74 kB raw for its own copy. That is what the Shared host
 would deduplicate, and only while the MFEs are on the same Angular version.
 
@@ -336,10 +488,16 @@ would deduplicate, and only while the MFEs are on the same Angular version.
 2. Provide `Platform` on the root component; add `platformAuthInterceptor` /
    `provideHostOwnedRouting` if it calls the API or has routes. Call
    `assertSdkMajor(1, 'mfe-x')` at module top level.
-3. Add it to `remotes` in `assemble.mjs` (in production: publish its bundle to the CDN
+3. Publish its contract: `contracts/x/` with the inputs, events and the
+   `HTMLElementTagNameMap` entry (copy `contracts/profile/`), a `paths` entry in
+   each consuming `tsconfig.json`, and
+   `AssertConforms<ContractCheck<Root, MfeXContract>>` next to the root component,
+   which uses signal `input()`/`output()`.
+4. Add it to `remotes` in `assemble.mjs` (in production: publish its bundle to the CDN
    and add a manifest entry with its `integrity`).
-4. The host renders it wherever it places `<mfe-x>`; no host redeploy needed once the
-   manifest is fetched at runtime.
+5. The host renders it wherever it places `<mfe-x>` (with a binding directive for
+   typed inputs); no host redeploy needed once the manifest is fetched at runtime,
+   unless the host starts using a new contract version.
 
 ## Limitations and open issues
 
@@ -361,10 +519,15 @@ would deduplicate, and only while the MFEs are on the same Angular version.
   moved to another provider doesn't re-request.
 - **Token registry is per application.** Several instances of one element share one
   Angular app injector; the interceptor uses the first connected instance's provider.
-- **Failed loads aren't retried.** The browser's module map caches a failed URL, so a
-  retry needs a cache-busting URL. An element that finally registers after its timeout
-  keeps showing the fallback until reload. An error thrown by a module the entry imports
-  (rather than the entry itself) is only caught by the timeout.
+- **Retry edges.** Retry URLs (`?mfe-retry=<n>`) are separate CDN cache keys, so a
+  retry during an origin outage may miss the edge cache; `Retry-After` isn't
+  honoured. A failed diagnostic fetch counts as a network error (transient), so a
+  CDN without CORS on bundles is retried to exhaustion rather than failing fast;
+  SRI already requires CORS. An element that finally registers after its budget
+  ran out keeps showing the fallback until reload. An error thrown by a module the
+  entry imports (rather than the entry itself) is only caught by the timeout.
+- **Typed contracts are compile-time only**, and host templates check input types
+  but not input names ([details](#limitations-of-template-checking-under-custom_elements_schema)).
 - **Routing:** the MFE router is application-wide, so its state survives the element
   being removed and re-added (harmless here, since the `route` input re-syncs it). Query
   strings pass through, but fragments don't. Host-level guards can't see the MFE's

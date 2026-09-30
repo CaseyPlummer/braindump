@@ -1,0 +1,11 @@
+{
+  "name": "@mfe/cart-contract",
+  "version": "1.0.0",
+  "description": "Types-only contract of <mfe-cart-ng21>: inputs, events and element typing.",
+  "private": true,
+  "types": "./index.d.ts",
+  "sideEffects": false,
+  "peerDependencies": {
+    "@platform/element-contract": "^1.0.0"
+  }
+}

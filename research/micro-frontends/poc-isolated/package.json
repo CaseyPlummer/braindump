@@ -11,6 +11,7 @@
     "assemble": "node assemble.mjs",
     "build": "npm run build:sdk && npm run build:mfes && npm run build:ng21 && npm run assemble && ng build host",
     "start": "npm run build:sdk && npm run build:mfes && npm run build:ng21 && npm run assemble && ng serve host",
+    "test:contracts": "ngc -p tsconfig.contracts.json && npm --prefix ng21 run test:contracts",
     "serve:dist": "node serve.mjs",
     "sizes": "node sizes.mjs"
   },
