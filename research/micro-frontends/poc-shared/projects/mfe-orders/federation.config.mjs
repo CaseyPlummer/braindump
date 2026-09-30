@@ -1,8 +1,15 @@
 import {
   withNativeFederation,
-  shareAll,
+  fromPackageJson,
   autoShareScope,
 } from '@angular-architects/native-federation/config';
+
+// Share scope derived from this workspace's @angular/core major ("ng22").
+// Only the Angular family is scoped: an app on another Angular major gets its own
+// Angular copy instead of a broken singleton, while version-agnostic packages
+// (rxjs, tslib, ...) stay in the default scope and are shared across majors.
+const ng = autoShareScope({ level: 'major' });
+const base = { singleton: true, strictVersion: true, requiredVersion: 'auto', build: 'package' };
 
 export default withNativeFederation({
   name: 'mfe-orders',
@@ -11,46 +18,31 @@ export default withNativeFederation({
     './web-component': './projects/mfe-orders/src/app/web-component.ts',
   },
 
-  // Version-scoped sharing: externals are only shared between apps whose
-  // @angular/core major matches ("ng22" here). A remote on another major
-  // lands in its own scope and gets its own copy instead of a broken singleton.
-  shareScope: autoShareScope({ level: 'major' }),
+  shared: fromPackageJson(base)
+    // Every other @angular/* dependency in package.json.
+    .patch(
+      [
+        '@angular/common',
+        '@angular/compiler',
+        '@angular/elements',
+        '@angular/forms',
+        '@angular/platform-browser',
+        '@angular/router',
+      ],
+      { shareScope: ng },
+    )
+    .override({
+      // includeSecondaries is an opt-out of ignoreUnusedDeps, so all of
+      // @angular/core is shared and apps in a scope need not import identical
+      // core entry points.
+      '@angular/core': { ...base, includeSecondaries: { keepAll: true }, shareScope: ng },
+    })
+    .get(),
 
-  shared: {
-    ...shareAll(
-      { singleton: true, strictVersion: true, requiredVersion: 'auto', build: 'package' },
-      {
-        overrides: {
-          // includeSecondaries is an opt-out of ignoreUnusedDeps, so all of
-          // @angular/core is shared to prevent mismatches.
-          '@angular/core': {
-            singleton: true,
-            strictVersion: true,
-            requiredVersion: 'auto',
-            build: 'package',
-            includeSecondaries: { keepAll: true },
-          },
-        },
-      },
-    ),
-  },
-
-  skip: [
-    'rxjs/ajax',
-    'rxjs/fetch',
-    'rxjs/testing',
-    'rxjs/webSocket',
-    // Add further packages you don't need at runtime
-  ],
-
-  // Please read our FAQ about sharing libs:
-  // https://shorturl.at/jmzH0
+  skip: ['rxjs/ajax', 'rxjs/fetch', 'rxjs/testing', 'rxjs/webSocket'],
 
   features: {
-    // ignoreUnusedDeps is enabled by default now
-    // ignoreUnusedDeps: true,
-
-    // Opt-in: groups chunks in remoteEntry.json for smaller metadata file
+    // Groups chunks in remoteEntry.json for a smaller metadata file.
     denseChunking: true,
   },
 });

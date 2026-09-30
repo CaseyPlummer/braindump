@@ -2,9 +2,10 @@
   <h1>Host shell (shared runtime / share-when-aligned)</h1>
   <p>
     A real Angular host loading web-component MFEs via <strong>Native Federation</strong>. Same
-    web-component boundary as Flavor 1, but the Angular runtime is <strong>shared</strong> when
-    versions align — so the MFE bundles carry no Angular of their own. The dashed orders box is an
-    Angular 21 remote: a different major, so it runs on its own Angular copy.
+    web-component boundary as the Isolated runtime, but the Angular runtime is
+    <strong>shared</strong> when versions align — so the aligned MFE bundles carry no Angular of
+    their own. The dashed and dotted orders boxes are Angular 21 and Angular 20 remotes: different
+    majors, so each runs on its own Angular copy.
   </p>
 </header>
 
@@ -38,5 +39,23 @@
     ></mfe-orders-ng21>
   } @else {
     <p>Loading orders (Angular 21)…</p>
+  }
+
+  @if (has('mfe-orders-ng20')) {
+    <mfe-orders-ng20
+      [customer]="customer()"
+      (orderSelected)="onOrderSelected($event)"
+    ></mfe-orders-ng20>
+  } @else {
+    <p>Loading orders (Angular 20)…</p>
+  }
+
+  @if (has('mfe-orders-ng19')) {
+    <mfe-orders-ng19
+      [customer]="customer()"
+      (orderSelected)="onOrderSelected($event)"
+    ></mfe-orders-ng19>
+  } @else if (expects('mfe-orders-ng19')) {
+    <p>Loading orders (Angular 19)…</p>
   }
 </main>

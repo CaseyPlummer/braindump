@@ -8,6 +8,8 @@ initFederation('federation.manifest.json', {
   // console; use 'warn' (the default) in production.
   logLevel: 'debug',
 })
-  .catch((err) => console.error(err))
-  .then((_) => import('./bootstrap'))
+  // The resolved federation instance (loadRemoteModule, initRemoteEntry, ...) is
+  // handed to the app and provided through DI, instead of the deprecated
+  // module-scoped top-level loadRemoteModule export.
+  .then((nf) => import('./bootstrap').then((m) => m.bootstrap(nf)))
   .catch((err) => console.error(err));

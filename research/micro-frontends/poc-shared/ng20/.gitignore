@@ -1,0 +1,5 @@
+# dependencies & build output of the Angular 20 workspace
+/node_modules
+/dist
+/out-tsc
+/.angular/cache

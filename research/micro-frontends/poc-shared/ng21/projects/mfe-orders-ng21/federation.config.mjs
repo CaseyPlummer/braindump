@@ -1,8 +1,15 @@
 import {
   withNativeFederation,
-  shareAll,
+  fromPackageJson,
   autoShareScope,
 } from '@angular-architects/native-federation-v4/config';
+
+// Share scope derived from this workspace's @angular/core major ("ng21").
+// Only the Angular family is scoped: an app on another Angular major gets its own
+// Angular copy instead of a broken singleton, while version-agnostic packages
+// (rxjs, tslib, ...) stay in the default scope and are shared across majors.
+const ng = autoShareScope({ level: 'major' });
+const base = { singleton: true, strictVersion: true, requiredVersion: 'auto', build: 'package' };
 
 export default withNativeFederation({
   name: 'mfe-orders-ng21',
@@ -11,31 +18,24 @@ export default withNativeFederation({
     './web-component': './projects/mfe-orders-ng21/src/app/web-component.ts',
   },
 
-  // Resolves to "ng21" from this workspace's @angular/core. The host and the
-  // aligned remotes resolve to "ng22", so this remote's Angular is never offered
-  // to (or taken from) them: it gets its own copy through an import-map scope.
-  shareScope: autoShareScope({ level: 'major' }),
-
-  shared: {
-    ...shareAll(
-      { singleton: true, strictVersion: true, requiredVersion: 'auto', build: 'package' },
-      {
-        overrides: {
-          '@angular/core': {
-            singleton: true,
-            strictVersion: true,
-            requiredVersion: 'auto',
-            build: 'package',
-            includeSecondaries: { keepAll: true },
-          },
-        },
-      },
-    ),
-  },
+  shared: fromPackageJson(base)
+    // Every other @angular/* dependency in package.json.
+    .patch(
+      ['@angular/common', '@angular/compiler', '@angular/elements', '@angular/platform-browser'],
+      { shareScope: ng },
+    )
+    .override({
+      // includeSecondaries is an opt-out of ignoreUnusedDeps, so all of
+      // @angular/core is shared and apps in a scope need not import identical
+      // core entry points.
+      '@angular/core': { ...base, includeSecondaries: { keepAll: true }, shareScope: ng },
+    })
+    .get(),
 
   skip: ['rxjs/ajax', 'rxjs/fetch', 'rxjs/testing', 'rxjs/webSocket'],
 
   features: {
+    // Groups chunks in remoteEntry.json for a smaller metadata file.
     denseChunking: true,
   },
 });

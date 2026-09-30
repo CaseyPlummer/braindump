@@ -3,13 +3,17 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "postinstall": "npm --prefix ng21 install --no-audit --no-fund",
+    "postinstall": "npm --prefix ng21 install --no-audit --no-fund && npm --prefix ng20 install --no-audit --no-fund",
     "build:mfes": "ng build mfe-orders && ng build mfe-profile",
     "build:ng21": "npm --prefix ng21 run build",
+    "build:ng20": "npm --prefix ng20 run build",
     "build:host": "ng build host",
     "assemble": "node assemble.mjs",
-    "build": "npm run build:mfes && npm run build:ng21 && npm run build:host && npm run assemble",
-    "serve:dist": "node serve.mjs"
+    "build": "npm run build:mfes && npm run build:ng21 && npm run build:ng20 && npm run build:host && npm run assemble",
+    "serve:dist": "node serve.mjs",
+    "build:ng19": "npm --prefix ng19 install --no-audit --no-fund && npm --prefix ng19 run build",
+    "serve:ng19": "node serve.mjs --ng19",
+    "serve:ng19-same-origin": "node serve.mjs --ng19-same-origin"
   },
   "private": true,
   "packageManager": "npm@11.8.0",

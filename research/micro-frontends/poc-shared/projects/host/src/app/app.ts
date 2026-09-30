@@ -1,5 +1,5 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, signal } from '@angular/core';
-import { loadRemoteModule } from '@angular-architects/native-federation';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, inject, signal } from '@angular/core';
+import { NATIVE_FEDERATION } from './app.config';
 
 interface RemoteWebComponent {
   register(): Promise<void>;
@@ -8,8 +8,8 @@ interface RemoteWebComponent {
 @Component({
   selector: 'app-root',
   templateUrl: './app.html',
-  // Same web-component boundary as the Flavor 1 POC; the difference is purely how
-  // the runtime is loaded (shared via Native Federation, not bundled per MFE).
+  // Same web-component boundary as the Isolated runtime POC; the difference is
+  // purely how the runtime is loaded (shared via Native Federation, not bundled per MFE).
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   styles: `
     :host {
@@ -41,24 +41,48 @@ interface RemoteWebComponent {
   `,
 })
 export class App implements OnInit {
+  private readonly nf = inject(NATIVE_FEDERATION);
   readonly loaded = signal(new Set<string>());
+  readonly expected = signal(new Set<string>());
   readonly customer = signal('ACME Corp');
   readonly lastOrder = signal<string | null>(null);
 
-  private readonly remotes = [
+  private readonly remotes: {
+    remoteName: string;
+    exposedModule: string;
+    tag: string;
+    optional?: boolean;
+  }[] = [
     { remoteName: 'mfe-orders', exposedModule: './web-component', tag: 'mfe-orders' },
     { remoteName: 'mfe-profile', exposedModule: './web-component', tag: 'mfe-profile' },
-    // Built on Angular 21 (ng21/ workspace): lands in its own share scope and
-    // brings its own Angular runtime; same DOM contract as mfe-orders.
+    // Built on older Angular majors (ng21/ and ng20/ workspaces): each lands in its
+    // own share scope and brings its own Angular runtime; same DOM contract as mfe-orders.
     { remoteName: 'mfe-orders-ng21', exposedModule: './web-component', tag: 'mfe-orders-ng21' },
+    { remoteName: 'mfe-orders-ng20', exposedModule: './web-component', tag: 'mfe-orders-ng20' },
+    // Opt-in (serve.mjs --ng19): Angular 19 on the Native Federation v3 line, loaded
+    // only when the manifest lists it.
+    {
+      remoteName: 'mfe-orders-ng19',
+      exposedModule: './web-component',
+      tag: 'mfe-orders-ng19',
+      optional: true,
+    },
   ];
 
   async ngOnInit(): Promise<void> {
-    // initFederation() already ran in main.ts; loadRemoteModule pulls each remote's
-    // exposed module, which registers its custom element on the SHARED Angular runtime.
-    for (const r of this.remotes) {
+    // initFederation() already ran in main.ts; its loadRemoteModule pulls each remote's
+    // exposed module, which registers its custom element on the Angular runtime of the
+    // remote's share scope (the host's for aligned remotes, a private copy otherwise).
+    const remotes = this.remotes.filter(
+      (r) => !r.optional || this.nf.adapters.remoteInfoRepo.contains(r.remoteName),
+    );
+    this.expected.set(new Set(remotes.map((r) => r.tag)));
+    for (const r of remotes) {
       try {
-        const mod = (await loadRemoteModule(r.remoteName, r.exposedModule)) as RemoteWebComponent;
+        const mod = await this.nf.loadRemoteModule<RemoteWebComponent>(
+          r.remoteName,
+          r.exposedModule,
+        );
         await mod.register();
         this.loaded.update((s) => new Set(s).add(r.tag));
       } catch (err) {
@@ -69,6 +93,10 @@ export class App implements OnInit {
 
   has(tag: string): boolean {
     return this.loaded().has(tag);
+  }
+
+  expects(tag: string): boolean {
+    return this.expected().has(tag);
   }
 
   onCustomerInput(event: Event): void {

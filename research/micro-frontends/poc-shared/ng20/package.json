@@ -1,0 +1,29 @@
+{
+  "name": "poc-shared-ng20",
+  "version": "0.0.0",
+  "description": "A Native Federation remote pinned two Angular majors behind the host (Angular 20), used to exercise version-scoped sharing.",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "build": "ng build mfe-orders-ng20"
+  },
+  "dependencies": {
+    "@angular/common": "~20.3.32",
+    "@angular/compiler": "~20.3.32",
+    "@angular/core": "~20.3.32",
+    "@angular/elements": "~20.3.32",
+    "@angular/platform-browser": "~20.3.32",
+    "es-module-shims": "^2.8.4",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-architects/native-federation-v4": "~20.4.3",
+    "@angular/build": "~20.3.37",
+    "@angular/cli": "~20.3.37",
+    "@angular/compiler-cli": "~20.3.32",
+    "@softarc/native-federation": "~4.7.0",
+    "@softarc/native-federation-orchestrator": "^4.6.1",
+    "typescript": "~5.9.3"
+  }
+}

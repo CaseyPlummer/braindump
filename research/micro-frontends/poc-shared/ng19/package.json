@@ -1,0 +1,28 @@
+{
+  "name": "poc-shared-ng19",
+  "version": "0.0.0",
+  "description": "A Native Federation remote pinned three Angular majors behind the host (Angular 19, Native Federation v3 line), used to test whether the v4 orchestrator can load it.",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "build": "ng build mfe-orders-ng19"
+  },
+  "dependencies": {
+    "@angular/common": "~19.2.25",
+    "@angular/compiler": "~19.2.25",
+    "@angular/core": "~19.2.25",
+    "@angular/elements": "~19.2.25",
+    "@angular/platform-browser": "~19.2.25",
+    "es-module-shims": "^1.10.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-architects/native-federation": "~19.0.23",
+    "@angular-devkit/build-angular": "~19.2.27",
+    "@angular/build": "~19.2.27",
+    "@angular/cli": "~19.2.27",
+    "@angular/compiler-cli": "~19.2.25",
+    "typescript": "~5.8.3"
+  }
+}

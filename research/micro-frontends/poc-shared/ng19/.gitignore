@@ -1,0 +1,5 @@
+# dependencies & build output of the Angular 19 workspace
+/node_modules
+/dist
+/out-tsc
+/.angular/cache

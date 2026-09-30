@@ -9,7 +9,8 @@ let registered = false;
  * `loadRemoteModule`. Crucially, `createApplication()` here uses the Angular
  * runtime **shared via Native Federation** — so when the host and this remote
  * are on a compatible Angular version, no second Angular is downloaded. The
- * web-component boundary is identical to Flavor 1; only the runtime is shared.
+ * web-component boundary is the same as with the Isolated runtime; only the
+ * runtime is shared.
  */
 export async function register(): Promise<void> {
   if (registered) return;

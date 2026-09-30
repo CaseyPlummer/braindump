@@ -1,11 +1,13 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, VERSION } from '@angular/core';
 
-/** Web-component contract: inputs down, events up. */
+/** Same contract as projects/mfe-orders (inputs down, events up), built on Angular 19. */
 @Component({
   selector: 'app-orders',
   template: `
     <section class="mfe">
-      <h3>Orders — {{ customer }}</h3>
+      <h3>
+        Orders — {{ customer }} <small>(Angular {{ version }})</small>
+      </h3>
       <ul>
         @for (id of orders; track id) {
           <li>
@@ -18,11 +20,15 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   styles: `
     .mfe {
       padding: 12px;
-      border: 1px solid #888;
+      border: 2px dotted #888;
       border-radius: 8px;
     }
     h3 {
       margin: 0 0 8px;
+    }
+    small {
+      font-weight: normal;
+      color: #666;
     }
     ul {
       margin: 0;
@@ -36,7 +42,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 export class OrdersComponent {
   @Input() customer = 'guest';
   @Output() orderSelected = new EventEmitter<string>();
-  readonly orders = ['#1001', '#1002', '#1003'];
+  readonly orders = ['#4001', '#4002', '#4003'];
+  readonly version = VERSION.full;
 
   select(id: string): void {
     this.orderSelected.emit(id);
