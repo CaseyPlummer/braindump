@@ -37,7 +37,7 @@ Everything else — bundler, repo layout, delivery model — is secondary to thi
 | [`performance.md`](./performance.md)             | Measured bundle/runtime cost, web-performance budgets, and the version-spread cost model                                                               |
 | [`recommendation.md`](./recommendation.md) | The decision (Isolated runtime by default), a decision matrix vs the Shared runtime with pros/cons, long-term justification, revisit triggers, SSR and delivery guidance |
 | [`isolation-demo/`](./isolation-demo/)           | A runnable barebones Angular MFE-as-web-component + a multi-runtime isolation proof (focused spike, not a full host)                                   |
-| [`poc-isolated/`](./poc-isolated/)                                 | A runnable **Isolated** reference: manifest-driven loading with fallback/SRI, a platform SDK (context, token, event bus), URL-sync routing, and Angular 21 + 22 MFEs on one page |
+| [`poc-isolated/`](./poc-isolated/)                                 | A runnable **Isolated** reference: manifest-driven loading with fallback/SRI, a host services library (context, token, event bus), URL-sync routing, and Angular 21 + 22 MFEs on one page |
 | [`poc-shared/`](./poc-shared/)                   | A runnable **Shared** reference: same boundary, Angular **shared per major via Native Federation**, plus an MFE a major behind on its own runtime     |
 | [`poc-ssr/`](./poc-ssr/)                         | A runnable **fragment SSR** reference: both hosts server-render MFE fragments (incl. one a major behind) and hand over to the client without hydration |
 | [`sources.md`](./sources.md)                     | Consolidated, dated sources                                                                                                                            |
@@ -45,7 +45,7 @@ Everything else — bundler, repo layout, delivery model — is secondary to thi
 > **Two host styles, one boundary:** `poc-isolated/` = **Isolated** runtime (each MFE
 > bundles its own Angular; the recommended default) and `poc-shared/` = **Shared**
 > runtime (Angular shared per major via Native Federation; the tested alternative).
-> The MFE source is identical between them; only host wiring differs. See
+> An MFE is written the same way for both; only its build and the host wiring differ. See
 > [`recommendation.md`](./recommendation.md).
 
 ## Scope notes

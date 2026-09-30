@@ -56,7 +56,7 @@ Native Federation). kB = 1,000 bytes, gzip level 9.
 | Host shell                                      | 35.5 kB                   | 227.5 kB (incl. shared Angular, orchestrator, shims) |
 | Each aligned MFE                                | ~36–40 kB                 | ~2 kB                               |
 | Host + 2 aligned MFEs                           | **111.1 kB**              | **~231 kB**                         |
-| + 1 MFE a major behind                          | ~+37 kB                   | **+177.2 kB** (408.3 kB total)      |
+| + 1 MFE on another major                        | ~+37 kB                   | **+140–155 kB** per extra major     |
 
 **Why Shared is heavier at small MFE counts:** a shared package can't be
 tree-shaken, because the host can't know which parts a future remote will use. The
@@ -65,7 +65,7 @@ element, whose runtime is tree-shaken to what that one component needs. The same
 applies to a version-scoped private copy: an MFE a major behind brings its whole
 untree-shaken Angular family.
 
-**Break-even:** Isolated costs ~35 kB + ~38 kB per MFE; Shared costs ~228 kB +
+**Break-even (minimal MFEs):** Isolated costs ~35 kB + ~38 kB per MFE; Shared costs ~228 kB +
 ~2 kB per aligned MFE. Shared becomes lighter only at **~6 or more aligned MFEs
 on one page** — above the 1–2 typical / ~5 maximum envelope. Raw (parse) size
 follows the same pattern, so the CPU argument doesn't rescue it at low counts.
@@ -107,10 +107,10 @@ which is why the table compounds with eager runtime count, not byte count alone.
      per major, so under a one-major policy a migration window opens about once a
      year.
 
-So with coarse-grained MFEs at 1–5 per page, self-contained is both the lighter and
-the more predictable option: **~35–37 kB gzip per MFE, flat**, with version skew
-adding nothing. Shared runtimes win on bytes only for pages that compose many
-aligned MFEs (see the break-even above).
+So with **lean** MFEs at 1–5 per page, Isolated is both the lighter and the more
+predictable option: ~35–37 kB gzip per MFE, flat, with version skew adding nothing
+extra. With **feature-rich** MFEs the byte advantage flips to the Shared host at about
+two MFEs per page — see the measured break-even below.
 
 ## Other duplication drivers (control these too)
 
@@ -126,15 +126,57 @@ anti-pattern actually bites. Mitigations:
 - **Lazy-load** MFEs that are below the fold or behind interaction, so only the
   critical-path runtimes count against initial load.
 
-## Real features change the per-MFE cost
+## Feature-rich MFEs: measured break-even
 
-The ~35–37 kB floor is framework-only. In [`poc-isolated/`](./poc-isolated/), adding
-the Angular router, `HttpClient` and the platform adapter took an MFE from 39.5 to
-**80.2 kB gzip** (router ≈ 25 kB gzip of that). Under the Isolated host every MFE
-that uses such features carries its own copy; under the Shared host they load once
-per major. The more framework features each MFE uses, the lower the break-even with
-the Shared host — re-measure with representative MFEs before treating the ~5-MFE
-figure as settled.
+The comparison above used minimal MFEs. Re-measured with **representative** MFEs —
+each with internal routes (Angular router), `HttpClient` data loading, a reactive form
+with validators and standard pipes — and hosts that use the router and `HttpClient`
+too. All MFEs Angular 22.2, above the fold, loaded in parallel; kB = 1,000 bytes, gzip
+level 9; Lighthouse mobile preset, median of 5.
+
+| Per-MFE cost              | Isolated                  | Shared                                             |
+| ------------------------- | ------------------------- | -------------------------------------------------- |
+| Host / fixed cost         | 77 kB                     | ~275 kB (core 96, router 29, forms 14, http 13, …) |
+| Each additional MFE       | **106.5 kB**              | **~3.6 kB**                                        |
+
+| MFEs | JS Isolated / Shared | LCP, simulated (ms) | All MFEs rendered, DevTools-throttled (ms) |
+| ---- | -------------------- | ------------------- | ------------------------------------------ |
+| 1    | 183 / 278 kB         | **2,599** / 3,970   | **4,275** / 9,070                          |
+| 2    | 290 / 282 kB         | **3,134** / 3,865   | **5,164** / 9,176                          |
+| 3    | 396 / 286 kB         | **3,695** / 4,025   | **5,850** / 9,214                          |
+| 5    | 609 / 293 kB         | 5,085 / **4,069**   | **7,378** / 9,381                          |
+| 8    | 929 / 304 kB         | 7,017 / **4,590**   | **8,994** / 10,538                         |
+| 10   | 1,142 / 311 kB       | 8,517 / **4,772**   | **10,544** / 11,222                        |
+
+Break-even (interpolated):
+
+- **Bytes: ~2 MFEs.** With feature-rich MFEs, sharing pays for itself almost
+  immediately (the minimal-MFE estimate was ~5).
+- **Simulated LCP: ~3.5 MFEs.** Lighthouse's default (simulated) throttling favors the
+  Shared host from about four MFEs up.
+- **DevTools-throttled time to all MFEs rendered: no crossover up to 10** (the gap
+  narrows from 4.8 s to 0.7 s; a linear fit crosses at ~11). The Shared host can't
+  paint until its federation module graph resolves — each hop costs a round trip —
+  so its first paint is ~7.4 s vs ~2.1 s here.
+- **With one MFE on another major** (N = 3, one on Angular 21): Isolated 391 kB /
+  3.7 s simulated LCP vs Shared 480 kB / 5.7 s — a second major erases the Shared
+  host's advantage.
+
+The two throttling modes disagree mainly on network round trips; real-world results
+likely fall between them, and warm caches or pages sharing heavy UI libraries would
+favor the Shared host further.
+
+**Takeaways:**
+
+- At **1–2 MFEs per page**, the Isolated host loads faster under both measurement
+  modes.
+- At **3–5 feature-rich MFEs**, the result depends on the measure: the Shared host
+  transfers far less and wins on simulated LCP; the Isolated host still renders
+  everything sooner on the clock.
+- **Budgets:** feature-rich Isolated MFEs cost ~106 kB gzip each, so two eager MFEs
+  already exceed an aggressive ~250 kB critical-path JS budget. Keep MFEs lean,
+  lazy-load MFEs below the fold or behind interaction, and treat the per-page MFE
+  count as a budget.
 
 ## What is not yet measured here
 

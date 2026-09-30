@@ -20,7 +20,7 @@ cross-cutting behaviour under **either** host.
 The dependable foundation is a **platform contract** that doesn't depend on
 framework versions:
 
-- **A small platform SDK** in plain TypeScript (no Angular dependency), owned by a
+- **A small host services library** in plain TypeScript (no Angular dependency), owned by a
   platform team, loaded **once** by the host, and versioned with a
   backward-compatible API.
 - **Context over the DOM** — MFEs request what they need (session, locale, theme,
@@ -28,8 +28,8 @@ framework versions:
   [Context Protocol](https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md)
   (`context-request` events, also implemented by `@lit/context`), and the host
   answers.
-- **Events over the DOM or an SDK bus** — parent/child via DOM events; many-to-many
-  via typed, versioned events on the SDK's bus.
+- **Events over the DOM or the host-services event bus** — parent/child via DOM events; many-to-many
+  via typed, versioned events on the host-services bus.
 
 With that contract in place, the Isolated host loses little by not using
 federation, and the Shared host gains a mechanism that keeps working during skew.
@@ -38,16 +38,16 @@ federation, and the Shared host gains a mechanism that keeps working during skew
 
 | Concern                         | Approach (either host)                                                                                                                                                                                                               | What Native Federation adds                                                 |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| **Shared state / context**      | Platform SDK exposes read-only state + subscriptions (session, tenant, locale, theme, flags) via the Context Protocol; versioned contract                                                                                            | A shared library instance — only for MFEs on the same major                 |
-| **Auth / session**              | Host owns login. Simplest: same-origin cookie session via a backend-for-frontend, so MFEs just call APIs. Otherwise the SDK exposes `getAccessToken()` and each MFE's HTTP interceptor calls it. MFEs never run their own login flow | A shared auth service while versions match                                  |
+| **Shared state / context**      | Host services library exposes read-only state + subscriptions (session, tenant, locale, theme, flags) via the Context Protocol; versioned contract                                                                                            | A shared library instance — only for MFEs on the same major                 |
+| **Auth / session**              | Host owns login. Simplest: same-origin cookie session via a backend-for-frontend, so MFEs just call APIs. Otherwise host services expose `getAccessToken()` and each MFE's HTTP interceptor calls it. MFEs never run their own login flow | A shared auth service while versions match                                  |
 | **Routing / deep links**        | Host owns the URL; passes each MFE its sub-path as an input; MFE emits `navigate` events the host applies. An MFE with internal routes keeps its router in sync with that input rather than listening to the address bar             | Aligned MFEs' routes can be lazy-loaded into the host router directly       |
-| **Cross-MFE events**            | DOM events for parent/child; SDK event bus with typed, versioned event names for broadcast                                                                                                                                           | —                                                                           |
+| **Cross-MFE events**            | DOM events for parent/child; host-services event bus with typed, versioned event names for broadcast                                                                                                                                           | —                                                                           |
 | **Design system / theming**     | Framework-agnostic web-component library loaded once by the host; design tokens as CSS custom properties (they inherit through shadow DOM); `provideCssVarNamespacing()` or CSS `@scope` for style isolation                         | —                                                                           |
 | **Shared libraries**            | Angular stays per-MFE (Isolated) or per-major (Shared). Framework-agnostic libraries can be shared with a **plain import map** — no federation needed                                                                                | Automatic sharing and version negotiation for all dependencies              |
 | **Discovery, deploy, rollback** | A manifest on the CDN pointing at immutable, versioned bundle URLs; canary and rollback by changing the manifest                                                                                                                     | A standard metadata format for the same idea                                |
 | **Typed contracts**             | Each MFE publishes a small types package (tag name, inputs, events) augmenting `HTMLElementTagNameMap`; contract tests in CI                                                                                                         | — (type sharing is a Module Federation 2.0 feature)                         |
 | **Resilience**                  | Loader applies a timeout per MFE, renders fallback UI on failure, and isolates errors so one broken MFE never breaks the page                                                                                                        | —                                                                           |
-| **Observability**               | SDK provides telemetry and correlation IDs; real-user monitoring tagged per MFE and version; skew visible from the manifest/registry                                                                                                 | Runtime logs of version-resolution decisions                                |
+| **Observability**               | Host services provide telemetry and correlation IDs; real-user monitoring tagged per MFE and version; skew visible from the manifest/registry                                                                                                 | Runtime logs of version-resolution decisions                                |
 | **Internationalization**        | Host provides locale via context; each MFE bundles its own translations                                                                                                                                                              | —                                                                           |
 | **Security**                    | `integrity` (SRI) in the manifest and loader; a content security policy limited to your CDN; Trusted Types; treat server-rendered fragments as trusted input only from your own endpoints                                            | SRI via import-map `integrity`                                              |
 | **Accessibility**               | Each MFE labels its own controls (ARIA references can't cross shadow roots outside Chromium's Reference Target); host manages focus on route changes                                                                                 | —                                                                           |
@@ -56,17 +56,22 @@ federation, and the Shared host gains a mechanism that keeps working during skew
 | **SSR**                         | Fragment SSR: each MFE renders its own HTML; the element replaces it on boot (see [`poc-ssr/`](./poc-ssr/))                                                                                                                          | Singleton SSR for aligned remotes — not applicable to web-component remotes |
 
 **Proven in [`poc-isolated/`](./poc-isolated/)** (Angular 22 and 21 MFEs on one
-page, no federation): a 1 kB-gzip platform SDK loaded once via a plain import map;
+page, no federation): a 1 kB-gzip host services library loaded once via a plain import map;
 Context Protocol contexts (session, locale, theme, flags) updating MFEs on both majors
 live; a token provider feeding each MFE's HTTP interceptor; a versioned event bus
 working across majors; URL-sync routing for an MFE with internal routes (deep links,
 back/forward, redirects, one history write per navigation, all by the host); loader
-timeout, fallback UI and SRI rejection with other MFEs unaffected; and a
-localhost-only manifest override for local development.
+timeout, fallback UI and SRI rejection with other MFEs unaffected; retry with backoff
+for transient failures only (network, 5xx, 408, 429) with SRI still enforced; typed
+contract packages per MFE, checked at build time against both the MFE's signal
+inputs/outputs and the host's usage (a changed event payload fails both builds); and a
+localhost-only manifest override for local development. One gap remains: with
+`CUSTOM_ELEMENTS_SCHEMA`, a misspelt input name in a host template still compiles
+(wrong input _types_ are caught).
 
 ## What the Isolated host gives up
 
-1. **Module singletons shared between aligned MFEs** — replaced by the platform SDK,
+1. **Module singletons shared between aligned MFEs** — replaced by the host services library,
    which both hosts need anyway for skewed versions.
 2. **Loading an MFE's routes straight into the host router** — replaced by a URL-sync
    contract. Slightly less seamless, but it works across versions.
@@ -79,12 +84,12 @@ has no federation release to coordinate with each Angular minor (see
 
 ## Design notes
 
-- **Keep the SDK small and boring.** It is the one dependency every MFE shares, so
+- **Keep host services small and boring.** It is the one dependency every MFE shares, so
   treat its API like a public API: semver, deprecation windows, no breaking changes
   without a major version, and a compatibility test suite run against old MFEs.
-- **Make context read-only.** MFEs request changes through events or SDK methods
+- **Make context read-only.** MFEs request changes through events or host-services methods
   (e.g. `session.refresh()`); the host decides. This keeps a single source of truth.
-- **Version events, not just the SDK.** Name events with a version suffix
+- **Version events, not just host services.** Name events with a version suffix
   (`cart.itemAdded@1`) so producers can evolve payloads without breaking consumers.
 - **Prefer cookies over tokens where you can.** A same-origin session through a
   backend-for-frontend removes token passing from the contract entirely.

@@ -14,7 +14,7 @@ the decision gate below makes the dependency explicit.
 2. **Hosts use the Isolated runtime by default** — each MFE bundles its own Angular
    and is loaded with a plain script tag from a manifest. No federation.
 3. **Cross-cutting concerns go through a small platform contract** — a
-   framework-agnostic SDK loaded once by the host (context, auth token, event bus)
+   framework-agnostic host services library loaded once by the host (context, auth token, event bus)
    plus a URL-sync routing contract. See
    [`cross-cutting-concerns.md`](./cross-cutting-concerns.md).
 4. **The Shared runtime (Native Federation) is a documented, tested alternative** —
@@ -40,24 +40,25 @@ the decision gate below makes the dependency explicit.
 Both hosts use the same web-component MFEs and the same platform contract; they differ
 only in where each MFE's Angular comes from. Priority reflects the scenario: version
 independence first, performance second. Figures are measured in this folder's POCs
-(Angular 22.2, host + MFEs, mobile Lighthouse preset) unless stated otherwise.
+(Angular 22.2, mobile Lighthouse preset, **feature-rich MFEs** with router, HTTP and
+forms) unless stated otherwise; see [`performance.md`](./performance.md).
 
 | Criterion                            | Priority  | Isolated runtime                                                         | Shared runtime (Native Federation)                                                                                   |
 | ------------------------------------ | --------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | **No forced lockstep**               | Primary   | ✅ Each MFE runs any Angular version, unchanged                          | ✅ Mismatched MFEs get a private copy via import-map scopes                                                          |
 | **Upgrade ordering**                 | Primary   | ✅ None — teams upgrade in any order                                     | 🟡 Hosts must upgrade first; an MFE ahead of its host, even by a minor, silently loads its own full runtime          |
 | **Toolchain coupling**               | Primary   | ✅ Plain Angular CLI + Angular Elements                                  | 🟡 Each Native Federation release targets one Angular minor; every Angular minor upgrade needs a matching NF upgrade |
-| **Load time, 1–5 MFEs**              | Secondary | ✅ LCP 2.0 s (2 MFEs), 2.6 s (5)                                         | ❌ LCP 3.4 s (2 MFEs), 3.6 s (5) — module-discovery round trips                                                      |
-| **Bytes, 1–5 MFEs**                  | Secondary | ✅ ~111 kB gzip (host + 2 bare MFEs)                                     | ❌ ~231 kB — shared packages can't be tree-shaken                                                                    |
-| **Bytes, many or feature-rich MFEs** | Secondary | 🟡 Every MFE carries its own router/HTTP (~40–80 kB gzip each)           | ✅ ~2 kB per aligned MFE after the fixed cost                                                                        |
-| **Cost of version skew**             | Secondary | ✅ An MFE a major behind costs the same as any other (~+37 kB)           | ❌ An MFE a major behind brings a whole untree-shaken Angular (~+177 kB)                                             |
+| **Load time, 1–3 MFEs**              | Secondary | ✅ LCP 2.6 s (1 MFE), 3.1 s (2), 3.7 s (3); first paint ~2 s              | ❌ LCP 4.0 s (1), 3.9 s (2), 4.0 s (3); first paint waits on module-discovery round trips |
+| **Load time, 4+ MFEs**               | Secondary | 🟡 Renders everything sooner on the clock up to ~10 MFEs                  | 🟡 Wins Lighthouse's simulated LCP from ~4 MFEs (4.1 vs 5.1 s at 5)                          |
+| **JavaScript bytes**                 | Secondary | ❌ ~106 kB gzip per feature-rich MFE (own Angular, router, HTTP, forms)   | ✅ ~275 kB fixed, then ~4 kB per aligned MFE — lighter from ~2 MFEs per page                  |
+| **Cost of version skew**             | Secondary | ✅ An MFE on another major costs the same as any other                    | ❌ Each MFE on another major brings a whole untree-shaken Angular (~+150–195 kB) and erases the byte advantage |
 | **Shared state / auth / events**     | Primary   | ✅ Platform contract, proven across Angular 21 and 22                    | 🟡 Shared module instances only while versions match; needs the same platform contract for skew                      |
 | **Routing integration**              | Secondary | 🟡 URL-sync contract (host owns the URL); proven, slightly less seamless | ✅ Aligned MFEs' routes can load straight into the host router                                                       |
 | **Tooling & conventions**            | Secondary | 🟡 Own a small loader, manifest schema, dev override, adapter            | ✅ Schematics, per-remote dev server, standard metadata                                                              |
 | **Dependency risk**                  | Secondary | ✅ Angular Elements ships inside Angular                                 | 🟡 Active, but most commits from a single maintainer                                                                 |
 | **Ecosystem & momentum**             | Secondary | 🟡 Standards-based; no MFE-specific community                            | ✅ The Angular community's MFE standard; downloads ~2.5× in a year                                                   |
 | **SSR**                              | Stretch   | 🟡 Fragment SSR, no hydration (proven)                                   | 🟡 Same fragment SSR (proven); NF's own SSR doesn't cover web-component remotes                                      |
-| **Moving parts**                     | Secondary | ✅ Script loader + manifest + SDK                                        | 🟡 Adds orchestrator, import-map shims, share scopes, pooling config                                                 |
+| **Moving parts**                     | Secondary | ✅ Script loader + manifest + host services                                        | 🟡 Adds orchestrator, import-map shims, share scopes, pooling config                                                 |
 | **Reversibility**                    | Primary   | ✅ Switch to Shared later: host + build config only                      | ✅ Switch to Isolated later: host + build config only                                                                |
 
 ### Isolated runtime — pros and cons
@@ -65,7 +66,7 @@ independence first, performance second. Figures are measured in this folder's PO
 **Pros**
 
 - No upgrade-ordering rule and no toolchain coupling beyond Angular itself.
-- Fastest load at typical MFE counts; version skew adds no extra cost.
+- Fastest load at 1–3 MFEs per page on every measure; version skew adds no extra cost.
 - Fewest moving parts; Angular Elements is maintained in Angular core.
 - Each MFE is a plain, self-sufficient artifact — easy to reason about, test and
   deploy.
@@ -73,8 +74,9 @@ independence first, performance second. Figures are measured in this folder's PO
 **Cons**
 
 - Every MFE carries its own copy of the Angular features it uses (router, HTTP,
-  forms), so bytes grow with feature-rich MFEs.
-- You own some platform code: SDK, loader, manifest schema, a small Angular adapter
+  forms): ~106 kB gzip per feature-rich MFE, so two eager MFEs already exceed an
+  aggressive ~250 kB JS budget. Needs lean MFEs and lazy loading.
+- You own some platform code: host services library, loader, manifest schema, a small Angular adapter
   per Angular major, starter template.
 - MFE routes can't be loaded directly into the host router.
 - No MFE-specific ecosystem tooling or community conventions.
@@ -83,14 +85,15 @@ independence first, performance second. Figures are measured in this folder's PO
 
 **Pros**
 
-- Aligned MFEs are nearly free (~2 kB each) after the fixed cost; the cost curve is
-  flat for pages with many MFEs.
+- Aligned MFEs are nearly free (~4 kB each) after the fixed cost; lighter in bytes
+  from ~2 feature-rich MFEs per page, and faster on simulated LCP from ~4.
 - Shared module instances and direct route integration between aligned apps.
 - Community-standard tooling, docs and conventions.
 
 **Cons**
 
-- Slower at typical MFE counts (+1.4 s LCP on mobile in the measured setup).
+- Slower first paint: the shell waits on the federation module graph (LCP +0.3–1.4 s
+  at 1–3 MFEs; first paint ~7 s vs ~2 s under DevTools throttling).
 - Hosts must upgrade first; NF upgrades track every Angular minor.
 - An MFE on another major is expensive (whole untree-shaken Angular).
 - Shared state still needs the platform contract, because sharing stops at a
@@ -109,9 +112,11 @@ independence first, performance second. Figures are measured in this folder's PO
    must survive version skew needs a framework-agnostic platform contract anyway.
    With that contract in place (proven in [`poc-isolated/`](./poc-isolated/)), what
    remains exclusive to the Shared runtime is direct route integration and tooling.
-3. **It performs better at the expected page composition.** Coarse, domain-level
-   MFEs at 1–2 per page (5 at most) load faster isolated. The Shared runtime's
-   advantage appears only at higher counts of feature-rich MFEs.
+3. **It performs better at the expected page composition.** At 1–3 feature-rich
+   MFEs per page, the Isolated runtime loads faster on every measure. The Shared
+   runtime transfers fewer bytes from ~2 MFEs and wins simulated LCP from ~4, so busy
+   pages are its territory — which is why the MFE count per page is a budget, not an
+   afterthought.
 4. **It bets on the most durable dependencies.** Web components and Angular Elements
    are a browser standard and an Angular core package. Angular now ships one major
    per year with 24 months of support, so skew windows are predictable; nothing in
@@ -125,8 +130,8 @@ independence first, performance second. Figures are measured in this folder's PO
 
 Re-open this decision for a host (or the standard) when any of these hold:
 
-- Pages regularly compose **~5 or more feature-rich MFEs**, and measured load time or
-  bytes exceed budget.
+- Pages regularly compose **3 or more feature-rich MFEs above the fold**, and
+  measured load time or bytes exceed budget even with lazy loading.
 - Teams need MFE **routes integrated directly** into the host router, and can hold
   versions aligned.
 - **Full SSR with hydration** becomes a requirement (points toward a version-aligned,
@@ -143,7 +148,7 @@ Re-open this decision for a host (or the standard) when any of these hold:
    tree — which is what makes version independence possible.
 
 2. **Let each MFE carry its own Angular; share only framework-agnostic pieces.** The
-   host loads the platform SDK and the design system once; MFEs bundle Angular and
+   host loads the host services library and the design system once; MFEs bundle Angular and
    the Angular features they use. Framework-agnostic libraries can be shared with a
    plain import map, without federation.
 
@@ -153,15 +158,25 @@ Re-open this decision for a host (or the standard) when any of these hold:
    services. See [`cross-cutting-concerns.md`](./cross-cutting-concerns.md).
 
 4. **Compose flat: host → list of MFEs.** The host is a thin shell (routing,
-   layout, auth/session, platform SDK, design system). MFEs are siblings, never
+   layout, auth/session, host services library, design system). MFEs are siblings, never
    nested in each other. Cap any MFE-in-MFE case at one level and require explicit
    sign-off; arbitrary nesting builds a distributed monolith.
 
-5. **Define an MFE as one domain.** Coarse-grained, domain-level MFEs keep per-page
-   count low (a workable envelope is **1–2 typical, ~5 maximum**), which keeps
-   duplication inside budget.
+5. **Define an MFE as one domain, and budget MFEs per page.** Coarse-grained,
+   domain-level MFEs keep per-page count low (a workable envelope is **1–2 typical,
+   ~5 maximum**). Keep MFEs lean (only the Angular features they need), and lazy-load
+   MFEs below the fold or behind interaction so only the critical ones load eagerly.
 
-6. **Adopt a version _policy_, not version _lockstep_.** For example, "MFEs stay
+6. **Build zoneless, on a current Angular.** Several Angular runtimes share a page
+   cleanly only when they are zoneless (stable since Angular 20, default since 21):
+   zone.js patches browser globals once per page, so zone-based runtimes share it and
+   re-run change detection for every app on every event. Minimum for MFEs: **Angular
+   20, zoneless** (19+ if you use signal-based typed contracts); recommended: the
+   latest release. An Isolated host can be any version, or not Angular at all; a
+   Shared host needs Angular 20+ on the current Native Federation line and should be
+   the newest major on the page.
+
+7. **Adopt a version _policy_, not version _lockstep_.** For example, "MFEs stay
    within one Angular major of the current release," with a rare, explicitly
    approved exception. Under the Isolated runtime the policy exists for support and
    security, not for compatibility. Angular ships **one major per year** with **24
@@ -180,7 +195,7 @@ difference between the two host styles.
 
 A normal Angular app with a small **loader service** that injects each MFE's
 `<script type="module">` from a **manifest** of element name → URL, with a timeout,
-fallback UI and `integrity` (SRI) per MFE. The host also provides the platform SDK
+fallback UI and `integrity` (SRI) per MFE. The host also provides the host services library
 (via a plain import map) and answers context requests. No federation, no special
 builder. Realized in [`poc-isolated/`](./poc-isolated/), including an Angular 21 MFE
 alongside Angular 22 ones on the same platform contract.
@@ -196,8 +211,9 @@ Angular 21 remote on its own runtime.
 Configuration that matters if you adopt it:
 
 - **`autoShareScope({ level: 'major' })`** on host and remotes, so sharing groups by
-  major (the default groups by minor). Consider scoping only the Angular family, so
-  version-agnostic packages like `rxjs` stay shared across majors.
+  major (the default groups by minor). Scope **only the Angular family** this way, so
+  version-agnostic packages like `rxjs` and `tslib` stay shared across majors (saves
+  ~22 kB gzip per older-major MFE).
 - **Auto external pooling** (`useAutoExternalPooling`) in the host, so a remote never
   mixes `@angular/*` packages from different builds.
 - **Keep `includeSecondaries: { keepAll: true }` on `@angular/core`**; without it,
@@ -206,9 +222,10 @@ Configuration that matters if you adopt it:
   browser still lacks multiple import maps.
 - **Hosts upgrade first**, including minors; document this in the team contract.
 
-In both styles the host stays **thin**, and MFE source is identical — only host
-wiring and build differ. [`isolation-demo/`](./isolation-demo/) is a deliberately
-minimal static page that proves runtime isolation; it is not a realistic host.
+In both styles the host stays **thin**, and an MFE is written the same way — only
+its build and the host wiring differ. [`isolation-demo/`](./isolation-demo/) is a
+deliberately minimal static page that proves runtime isolation; it is not a realistic
+host.
 
 ## Server-side rendering
 
@@ -259,8 +276,7 @@ host must trust the fragment HTML it inserts.
   from runtime composition, not the repo layout.
 - **Make polyrepo scale with shared scaffolding**, since the cost of polyrepo is
   drift: a shared **MFE starter/template** (build config, element wrapping, the
-  platform adapter, HTTP interceptor and context helpers), a **published platform
-  SDK** and **shared component library** (versioned, framework-agnostic), and a
+  platform adapter, HTTP interceptor and context helpers), a **published host services library** and **shared component library** (versioned, framework-agnostic), and a
   **central manifest/registry** the host reads to discover MFE URLs. Per-repo **Nx**
   is still useful for caching and affected builds — Nx is not monorepo-only.
 - **Delivery: runtime remotes from a CDN.** Hosts load MFEs live from a manifest of
@@ -273,8 +289,9 @@ host must trust the fragment HTML it inserts.
 State these explicitly when proposing the pattern:
 
 - **Per-MFE framework cost** — each MFE carries its own Angular and the Angular
-  features it uses (~35–37 kB gzip bare; ~80 kB with router and HTTP).
-- **Platform code to own** — SDK, loader, manifest schema, per-major Angular adapter,
+  features it uses (~35–37 kB gzip bare; ~106 kB with router, HTTP and forms), so
+  lean MFEs and lazy loading are part of the pattern.
+- **Platform code to own** — host services library, loader, manifest schema, per-major Angular adapter,
   starter template.
 - **SSR is not first-class** — fragment SSR works (first paint, no layout shift);
   hydration across the boundary does not, so each MFE renders twice.
@@ -304,20 +321,28 @@ Sharing a page means sharing some global namespaces. Handle each deliberately:
 - ✅ **Boundary and isolation** — [`isolation-demo/`](./isolation-demo/): three
   independent Angular runtimes coexist on one page with isolated state.
 - ✅ **Isolated runtime + platform contract** — [`poc-isolated/`](./poc-isolated/):
-  manifest-driven loading with timeout, fallback and SRI; a 1 kB-gzip platform SDK
-  loaded once; context, token provider and event bus working across Angular 21 and
-  22; URL-sync routing with deep links and back/forward; local-dev manifest override.
+  manifest-driven loading with timeout, fallback, SRI and retry of transient failures;
+  a 1 kB-gzip host services library loaded once; context, token provider and event bus working
+  across Angular 21 and 22; URL-sync routing with deep links and back/forward;
+  per-MFE typed contract packages enforced at build time in both directions; local-dev
+  manifest override.
 - ✅ **Shared runtime** — [`poc-shared/`](./poc-shared/): `@angular/core` loads once for
   host and aligned MFEs, while an MFE a major behind runs on its own Angular in a
   separate import-map scope.
 - ✅ **Fragment SSR** — [`poc-ssr/`](./poc-ssr/): both host styles server-render MFE
   fragments (including one a major behind) and hand over to the client with no
   hydration errors, CLS 0, and client-side fallback on timeout.
+- ✅ **Feature-rich break-even** — representative MFEs (router, HTTP, forms) measured
+  at 1–10 per page for both host styles; see [`performance.md`](./performance.md).
+- ✅ **Shared runtime across several majors** — Angular 22, 21 and 20 remotes on one
+  page, each older major on its own Angular; an Angular 19 remote (previous Native
+  Federation line) works only when served from its own origin. See
+  [`poc-shared/`](./poc-shared/).
 - **Open questions:**
-  - Byte and load-time break-even with representative, feature-rich MFEs (the
-    measured comparison used minimal MFEs).
-  - Shared runtime with MFEs more than one major behind: current Native Federation
-    supports Angular 20+; older remotes need the previous NF line.
+  - Whether preload hints, HTTP/2 and native import maps close the Shared runtime's
+    first-paint gap (untested).
+  - Fragment SSR at production scale: fan-out latency across real network distance,
+    and caching fragments at the edge.
 
 ## Builder / module-system stance
 
